@@ -1,0 +1,208 @@
+'use client'
+
+import { useState, useMemo } from 'react'
+import { mockProjects } from '@/lib/mock-data'
+import { Project, ProjectStatus, Period } from '@/lib/types'
+import { Card } from '@/components/ui/Card'
+import { StatusBadge, ProbabilityBadge } from '@/components/ui/Badge'
+import { formatCurrency } from '@/lib/utils'
+import { Plus, Search, Filter, ChevronDown, ChevronRight } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+const ALL_STATUSES: ProjectStatus[] = [
+  '見積もり中', '進行中', '外注', '請求済み', '着金済み', '立て替え', '完了済', '失注'
+]
+
+const STATUS_ORDER: ProjectStatus[] = [
+  '見積もり中', '進行中', '外注', '請求済み', '着金済み', '立て替え', '完了済', '失注'
+]
+
+export default function ProjectsPage() {
+  const [search, setSearch] = useState('')
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('全期')
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
+
+  const periods = ['全期', '第4期', '第3期', '第2期', '第1期']
+
+  const filtered = useMemo(() => {
+    return mockProjects.filter(p => {
+      const matchSearch =
+        p.name.includes(search) ||
+        p.client_name.includes(search)
+      const matchPeriod =
+        selectedPeriod === '全期' || p.period === selectedPeriod
+      return matchSearch && matchPeriod
+    })
+  }, [search, selectedPeriod])
+
+  // ステータスでグループ化
+  const grouped = useMemo(() => {
+    const groups: Record<string, Project[]> = {}
+    STATUS_ORDER.forEach(status => {
+      const items = filtered.filter(p => p.status === status)
+      if (items.length > 0) groups[status] = items
+    })
+    return groups
+  }, [filtered])
+
+  const toggleGroup = (key: string) => {
+    setCollapsedGroups(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* ツールバー */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 relative">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--muted)' }} />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="プロジェクト名・顧客名で検索"
+            className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border outline-none focus:ring-2"
+            style={{
+              background: 'var(--card)',
+              borderColor: 'var(--border)',
+              color: 'var(--foreground)',
+            }}
+          />
+        </div>
+
+        {/* 期フィルター */}
+        <div className="flex gap-1 p-1 rounded-lg" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+          {periods.map(p => (
+            <button
+              key={p}
+              onClick={() => setSelectedPeriod(p)}
+              className={cn(
+                'px-3 py-1.5 text-xs font-medium rounded-md transition-all',
+                selectedPeriod === p
+                  ? 'text-white'
+                  : 'hover:bg-gray-50'
+              )}
+              style={selectedPeriod === p ? { background: 'var(--primary)', color: 'white' } : { color: 'var(--muted)' }}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+
+        <button
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90"
+          style={{ background: 'var(--primary)' }}
+        >
+          <Plus size={15} />
+          新規追加
+        </button>
+      </div>
+
+      {/* 合計サマリー */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: '件数', value: `${filtered.length}件` },
+          { label: '合計金額（税抜）', value: formatCurrency(filtered.reduce((s, p) => s + p.amount, 0)) },
+          { label: '合計税額', value: formatCurrency(filtered.reduce((s, p) => s + p.tax_amount, 0)) },
+        ].map(item => (
+          <div
+            key={item.label}
+            className="flex items-center justify-between px-4 py-3 rounded-lg border"
+            style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+          >
+            <span className="text-xs" style={{ color: 'var(--muted)' }}>{item.label}</span>
+            <span className="text-sm font-semibold">{item.value}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* グループ別テーブル */}
+      {Object.entries(grouped).map(([status, projects]) => {
+        const isCollapsed = collapsedGroups.has(status)
+        const groupTotal = projects.reduce((s, p) => s + p.amount, 0)
+
+        return (
+          <Card key={status} className="p-0 overflow-hidden">
+            {/* グループヘッダー */}
+            <button
+              onClick={() => toggleGroup(status)}
+              className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50"
+              style={{ borderBottom: isCollapsed ? 'none' : '1px solid var(--border)' }}
+            >
+              {isCollapsed ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
+              <StatusBadge status={status as ProjectStatus} />
+              <span className="text-xs" style={{ color: 'var(--muted)' }}>
+                {projects.length}件
+              </span>
+              <span className="ml-auto text-xs font-medium" style={{ color: 'var(--muted)' }}>
+                合計 {formatCurrency(groupTotal)}
+              </span>
+            </button>
+
+            {/* テーブル */}
+            {!isCollapsed && (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border)', background: '#FAFAFA' }}>
+                    <th className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>プロジェクト名</th>
+                    <th className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>顧客名</th>
+                    <th className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>確度</th>
+                    <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>金額（税抜）</th>
+                    <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>税額</th>
+                    <th className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>期</th>
+                    <th className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>請求月</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {projects.map((project, i) => (
+                    <tr
+                      key={project.id}
+                      className="cursor-pointer transition-colors hover:bg-gray-50"
+                      style={{ borderBottom: i < projects.length - 1 ? '1px solid var(--border)' : 'none' }}
+                    >
+                      <td className="px-4 py-3 font-medium max-w-[240px]">
+                        <span className="block truncate">{project.name}</span>
+                      </td>
+                      <td className="px-4 py-3 max-w-[160px]">
+                        <span
+                          className="inline-block px-2 py-0.5 rounded-full text-xs truncate max-w-full"
+                          style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
+                        >
+                          {project.client_name}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <ProbabilityBadge probability={project.probability} />
+                      </td>
+                      <td className="px-4 py-3 text-right font-medium">
+                        {formatCurrency(project.amount)}
+                      </td>
+                      <td className="px-4 py-3 text-right" style={{ color: 'var(--muted)' }}>
+                        {formatCurrency(project.tax_amount)}
+                      </td>
+                      <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted)' }}>
+                        {project.period}
+                      </td>
+                      <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted)' }}>
+                        {project.invoice_month ?? '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </Card>
+        )
+      })}
+
+      {filtered.length === 0 && (
+        <div className="text-center py-16" style={{ color: 'var(--muted)' }}>
+          <p className="text-sm">該当するプロジェクトがありません</p>
+        </div>
+      )}
+    </div>
+  )
+}

@@ -32,6 +32,10 @@ export default function ProjectsPage() {
   const periods = [...periodSettings.map(p => p.name), '全期']
 
   useEffect(() => {
+    if (periodSettings.length > 0) setSelectedPeriod(periodSettings[0].name)
+  }, [periodSettings])
+
+  useEffect(() => {
     getProjects()
       .then(setProjects)
       .finally(() => setLoading(false))

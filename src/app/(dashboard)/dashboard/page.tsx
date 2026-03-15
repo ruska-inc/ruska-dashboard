@@ -42,6 +42,10 @@ export default function DashboardPage() {
   const { periods } = usePeriods()
 
   useEffect(() => {
+    if (periods.length > 0) setSelectedPeriod(periods[0].name)
+  }, [periods])
+
+  useEffect(() => {
     Promise.all([getProjects(), getPaymentRecords(), getContractorAssignments()])
       .then(([p, pay, a]) => {
         setProjects(p)

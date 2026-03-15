@@ -1,26 +1,43 @@
 'use client'
 
 import { mockProjects, mockPaymentRecords } from '@/lib/mock-data'
+import { PaymentRecord } from '@/lib/types'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { StatusBadge } from '@/components/ui/Badge'
 import { formatCurrency } from '@/lib/utils'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
+import PaymentFormModal from '@/components/sales/PaymentFormModal'
 
 const tabs = ['入金記録', '請求管理']
 
 export default function SalesPage() {
   const [activeTab, setActiveTab] = useState('入金記録')
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false)
+  const [payments, setPayments] = useState(mockPaymentRecords)
 
+  const handleSavePayment = (record: Omit<PaymentRecord, 'id' | 'created_at'>) => {
+    const newRecord: PaymentRecord = {
+      ...record,
+      id: String(Date.now()),
+      created_at: new Date().toISOString(),
+    }
+    setPayments(prev => [newRecord, ...prev])
+  }
+
+  const totalPayments = payments.reduce((s, r) => s + r.amount, 0)
   const unpaidProjects = mockProjects.filter(
     p => p.status === '請求済み' || (p.probability === '確定' && p.status === '進行中')
   )
 
-  const totalPayments = mockPaymentRecords.reduce((s, r) => s + r.amount, 0)
-
   return (
     <div className="space-y-5">
+      <PaymentFormModal
+        open={paymentModalOpen}
+        onClose={() => setPaymentModalOpen(false)}
+        onSave={handleSavePayment}
+      />
       {/* タブ */}
       <div className="flex gap-1 p-1 rounded-lg w-fit" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
         {tabs.map(tab => (
@@ -59,6 +76,7 @@ export default function SalesPage() {
             <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
               <h3 className="text-sm font-semibold">入金記録一覧</h3>
               <button
+                onClick={() => setPaymentModalOpen(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white"
                 style={{ background: 'var(--primary)' }}
               >
@@ -77,11 +95,11 @@ export default function SalesPage() {
                 </tr>
               </thead>
               <tbody>
-                {mockPaymentRecords.map((record, i) => (
+                {payments.map((record, i) => (
                   <tr
                     key={record.id}
                     className="hover:bg-gray-50 transition-colors"
-                    style={{ borderBottom: i < mockPaymentRecords.length - 1 ? '1px solid var(--border)' : 'none' }}
+                    style={{ borderBottom: i < payments.length - 1 ? '1px solid var(--border)' : 'none' }}
                   >
                     <td className="px-4 py-3 font-medium">{record.project_name}</td>
                     <td className="px-4 py-3">

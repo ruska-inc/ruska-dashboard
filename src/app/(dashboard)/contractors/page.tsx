@@ -7,7 +7,8 @@ import { PaymentStatusBadge } from '@/components/ui/Badge'
 import { formatCurrency } from '@/lib/utils'
 import { Plus, Mail, Phone, Tag } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { InvoiceStatus } from '@/lib/types'
+import { ContractorAssignment, InvoiceStatus } from '@/lib/types'
+import AssignmentFormModal from '@/components/contractors/AssignmentFormModal'
 
 const tabs = ['委託案件', '委託先マスタ']
 
@@ -20,17 +21,33 @@ const invoiceStatusColors: Record<InvoiceStatus, string> = {
 
 export default function ContractorsPage() {
   const [activeTab, setActiveTab] = useState('委託案件')
+  const [assignmentModalOpen, setAssignmentModalOpen] = useState(false)
+  const [assignments, setAssignments] = useState(mockContractorAssignments)
 
-  const totalPaid = mockContractorAssignments
+  const handleSaveAssignment = (data: Omit<ContractorAssignment, 'id' | 'created_at'>) => {
+    const newAssignment: ContractorAssignment = {
+      ...data,
+      id: String(Date.now()),
+      created_at: new Date().toISOString(),
+    }
+    setAssignments(prev => [newAssignment, ...prev])
+  }
+
+  const totalPaid = assignments
     .filter(a => a.payment_status === '支払済')
     .reduce((s, a) => s + a.amount_excl_tax, 0)
 
-  const totalPending = mockContractorAssignments
+  const totalPending = assignments
     .filter(a => a.payment_status === '未対応')
     .reduce((s, a) => s + a.amount_excl_tax, 0)
 
   return (
     <div className="space-y-5">
+      <AssignmentFormModal
+        open={assignmentModalOpen}
+        onClose={() => setAssignmentModalOpen(false)}
+        onSave={handleSaveAssignment}
+      />
       {/* タブ */}
       <div className="flex gap-1 p-1 rounded-lg w-fit" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
         {tabs.map(tab => (
@@ -75,6 +92,7 @@ export default function ContractorsPage() {
             <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
               <h3 className="text-sm font-semibold">委託案件一覧</h3>
               <button
+                onClick={() => setAssignmentModalOpen(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white"
                 style={{ background: 'var(--primary)' }}
               >
@@ -93,13 +111,13 @@ export default function ContractorsPage() {
                 </tr>
               </thead>
               <tbody>
-                {mockContractorAssignments.map((assignment, i) => {
+                {assignments.map((assignment, i) => {
                   const contractor = mockContractors.find(c => c.id === assignment.contractor_id)
                   return (
                     <tr
                       key={assignment.id}
                       className="hover:bg-gray-50 transition-colors"
-                      style={{ borderBottom: i < mockContractorAssignments.length - 1 ? '1px solid var(--border)' : 'none' }}
+                      style={{ borderBottom: i < assignments.length - 1 ? '1px solid var(--border)' : 'none' }}
                     >
                       <td className="px-4 py-3 font-medium max-w-[180px]">
                         <span className="block truncate">{assignment.project_name}</span>

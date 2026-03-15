@@ -6,8 +6,9 @@ import { Project, ProjectStatus, Period } from '@/lib/types'
 import { Card } from '@/components/ui/Card'
 import { StatusBadge, ProbabilityBadge } from '@/components/ui/Badge'
 import { formatCurrency } from '@/lib/utils'
-import { Plus, Search, Filter, ChevronDown, ChevronRight } from 'lucide-react'
+import { Plus, Search, ChevronDown, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import ProjectFormModal from '@/components/projects/ProjectFormModal'
 
 const ALL_STATUSES: ProjectStatus[] = [
   '見積もり中', '進行中', '外注', '請求済み', '着金済み', '立て替え', '完了済', '失注'
@@ -21,11 +22,29 @@ export default function ProjectsPage() {
   const [search, setSearch] = useState('')
   const [selectedPeriod, setSelectedPeriod] = useState<string>('全期')
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
+  const [projects, setProjects] = useState(mockProjects)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editTarget, setEditTarget] = useState<Project | undefined>(undefined)
 
   const periods = ['全期', '第4期', '第3期', '第2期', '第1期']
 
+  const handleSave = (data: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => {
+    if (editTarget) {
+      setProjects(prev => prev.map(p => p.id === editTarget.id ? { ...p, ...data } : p))
+    } else {
+      const newProject: Project = {
+        ...data,
+        id: String(Date.now()),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+      setProjects(prev => [newProject, ...prev])
+    }
+    setEditTarget(undefined)
+  }
+
   const filtered = useMemo(() => {
-    return mockProjects.filter(p => {
+    return projects.filter(p => {
       const matchSearch =
         p.name.includes(search) ||
         p.client_name.includes(search)
@@ -45,6 +64,9 @@ export default function ProjectsPage() {
     return groups
   }, [filtered])
 
+  const openNew = () => { setEditTarget(undefined); setModalOpen(true) }
+  const openEdit = (p: Project) => { setEditTarget(p); setModalOpen(true) }
+
   const toggleGroup = (key: string) => {
     setCollapsedGroups(prev => {
       const next = new Set(prev)
@@ -56,6 +78,12 @@ export default function ProjectsPage() {
 
   return (
     <div className="space-y-4">
+      <ProjectFormModal
+        open={modalOpen}
+        onClose={() => { setModalOpen(false); setEditTarget(undefined) }}
+        onSave={handleSave}
+        initial={editTarget}
+      />
       {/* ツールバー */}
       <div className="flex items-center gap-3">
         <div className="flex-1 relative">
@@ -93,6 +121,7 @@ export default function ProjectsPage() {
         </div>
 
         <button
+          onClick={openNew}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90"
           style={{ background: 'var(--primary)' }}
         >
@@ -160,6 +189,7 @@ export default function ProjectsPage() {
                   {projects.map((project, i) => (
                     <tr
                       key={project.id}
+                      onClick={() => openEdit(project)}
                       className="cursor-pointer transition-colors hover:bg-gray-50"
                       style={{ borderBottom: i < projects.length - 1 ? '1px solid var(--border)' : 'none' }}
                     >

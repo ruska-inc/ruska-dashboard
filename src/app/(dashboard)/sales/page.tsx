@@ -8,7 +8,9 @@ import { formatCurrency } from '@/lib/utils'
 import { Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import PaymentFormModal from '@/components/sales/PaymentFormModal'
-import { getProjects, getPaymentRecords, createPaymentRecord } from '@/lib/supabase/queries'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import { getProjects, getPaymentRecords, createPaymentRecord, deletePaymentRecord } from '@/lib/supabase/queries'
+import { Trash2 } from 'lucide-react'
 
 const tabs = ['入金記録', '請求管理']
 
@@ -18,6 +20,7 @@ export default function SalesPage() {
   const [payments, setPayments] = useState<PaymentRecord[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
+  const [deleteTarget, setDeleteTarget] = useState<PaymentRecord | undefined>(undefined)
 
   useEffect(() => {
     Promise.all([getPaymentRecords(), getProjects()])
@@ -28,6 +31,13 @@ export default function SalesPage() {
   const handleSavePayment = async (record: Omit<PaymentRecord, 'id' | 'created_at'>) => {
     const created = await createPaymentRecord(record)
     setPayments(prev => [created, ...prev])
+  }
+
+  const handleDeletePayment = async () => {
+    if (!deleteTarget) return
+    await deletePaymentRecord(deleteTarget.id)
+    setPayments(prev => prev.filter(p => p.id !== deleteTarget.id))
+    setDeleteTarget(undefined)
   }
 
   const totalPayments = payments.reduce((s, r) => s + r.amount, 0)
@@ -41,6 +51,13 @@ export default function SalesPage() {
         open={paymentModalOpen}
         onClose={() => setPaymentModalOpen(false)}
         onSave={handleSavePayment}
+      />
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="入金記録を削除"
+        message={`「${deleteTarget?.project_name}」の入金記録を削除します。`}
+        onConfirm={handleDeletePayment}
+        onCancel={() => setDeleteTarget(undefined)}
       />
 
       <div className="flex gap-1 p-1 rounded-lg w-fit" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
@@ -89,14 +106,14 @@ export default function SalesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)', background: '#FAFAFA' }}>
-                  {['プロジェクト名', '顧客名', '入金日', '入金額', '入金月'].map(h => (
+                  {['プロジェクト名', '顧客名', '入金日', '入金額', '入金月', ''].map(h => (
                     <th key={h} className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {payments.map((record, i) => (
-                  <tr key={record.id} className="hover:bg-gray-50 transition-colors"
+                  <tr key={record.id} className="hover:bg-gray-50 transition-colors group"
                     style={{ borderBottom: i < payments.length - 1 ? '1px solid var(--border)' : 'none' }}>
                     <td className="px-4 py-3 font-medium">{record.project_name}</td>
                     <td className="px-4 py-3">
@@ -108,6 +125,14 @@ export default function SalesPage() {
                     <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted)' }}>{record.payment_date}</td>
                     <td className="px-4 py-3 font-semibold" style={{ color: 'var(--accent)' }}>{formatCurrency(record.amount)}</td>
                     <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted)' }}>{record.payment_month}</td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => setDeleteTarget(record)}
+                        className="w-7 h-7 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50"
+                        style={{ color: '#EF4444' }}>
+                        <Trash2 size={13} />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

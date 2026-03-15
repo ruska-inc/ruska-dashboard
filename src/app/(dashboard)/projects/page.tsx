@@ -8,7 +8,10 @@ import { formatCurrency } from '@/lib/utils'
 import { Plus, Search, ChevronDown, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import ProjectFormModal from '@/components/projects/ProjectFormModal'
-import { getProjects, createProject, updateProject } from '@/lib/supabase/queries'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import ExcelImportModal from '@/components/import/ExcelImportModal'
+import { getProjects, createProject, updateProject, deleteProject } from '@/lib/supabase/queries'
+import { Trash2, Upload } from 'lucide-react'
 
 const STATUS_ORDER: ProjectStatus[] = [
   '見積もり中', '進行中', '外注', '請求済み', '着金済み', '立て替え', '完了済', '失注'
@@ -22,6 +25,8 @@ export default function ProjectsPage() {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
   const [modalOpen, setModalOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Project | undefined>(undefined)
+  const [deleteTarget, setDeleteTarget] = useState<Project | undefined>(undefined)
+  const [importOpen, setImportOpen] = useState(false)
 
   const periods = ['全期', '第4期', '第3期', '第2期', '第1期']
 
@@ -68,6 +73,13 @@ export default function ProjectsPage() {
     })
   }
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return
+    await deleteProject(deleteTarget.id)
+    setProjects(prev => prev.filter(p => p.id !== deleteTarget.id))
+    setDeleteTarget(undefined)
+  }
+
   const openNew = () => { setEditTarget(undefined); setModalOpen(true) }
   const openEdit = (p: Project) => { setEditTarget(p); setModalOpen(true) }
 
@@ -78,6 +90,18 @@ export default function ProjectsPage() {
         onClose={() => { setModalOpen(false); setEditTarget(undefined) }}
         onSave={handleSave}
         initial={editTarget}
+      />
+      <ExcelImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImported={imported => setProjects(prev => [...imported, ...prev])}
+      />
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="プロジェクトを削除"
+        message={`「${deleteTarget?.name}」を削除します。この操作は取り消せません。`}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(undefined)}
       />
 
       {/* ツールバー */}
@@ -106,6 +130,14 @@ export default function ProjectsPage() {
           ))}
         </div>
 
+        <button
+          onClick={() => setImportOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-gray-100 border"
+          style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
+        >
+          <Upload size={15} />
+          Excelインポート
+        </button>
         <button
           onClick={openNew}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90"
@@ -161,7 +193,7 @@ export default function ProjectsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)', background: '#FAFAFA' }}>
-                    {['プロジェクト名', '顧客名', '確度', '金額（税抜）', '税額', '期', '請求月'].map(h => (
+                    {['プロジェクト名', '顧客名', '確度', '金額（税抜）', '税額', '期', '請求月', ''].map(h => (
                       <th key={h} className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>{h}</th>
                     ))}
                   </tr>
@@ -171,7 +203,7 @@ export default function ProjectsPage() {
                     <tr
                       key={project.id}
                       onClick={() => openEdit(project)}
-                      className="cursor-pointer transition-colors hover:bg-gray-50"
+                      className="cursor-pointer transition-colors hover:bg-gray-50 group"
                       style={{ borderBottom: i < items.length - 1 ? '1px solid var(--border)' : 'none' }}
                     >
                       <td className="px-4 py-3 font-medium max-w-[240px]">
@@ -188,6 +220,15 @@ export default function ProjectsPage() {
                       <td className="px-4 py-3 text-right" style={{ color: 'var(--muted)' }}>{formatCurrency(project.tax_amount)}</td>
                       <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted)' }}>{project.period}</td>
                       <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted)' }}>{project.invoice_month ?? '—'}</td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={e => { e.stopPropagation(); setDeleteTarget(project) }}
+                          className="w-7 h-7 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50"
+                          style={{ color: '#EF4444' }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

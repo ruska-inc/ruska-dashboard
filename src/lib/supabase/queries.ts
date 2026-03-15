@@ -45,6 +45,23 @@ export async function deleteProject(id: string) {
 }
 
 // =============================================
+// ユーザープロファイル
+// =============================================
+
+export async function getMyProfile() {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+  if (error) return null
+  return data
+}
+
+// =============================================
 // 入金記録
 // =============================================
 

@@ -10,7 +10,9 @@ import {
   Tooltip, ResponsiveContainer, Cell,
 } from 'recharts'
 import { TrendingUp, TrendingDown, Receipt, AlertCircle } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
+const PERIODS = ['全期', '第1期', '第2期', '第3期', '第4期', '第5期']
 const probabilityColors = ['#F59E0B', '#F97316', '#3B82F6', '#7A9E7E', '#EF4444', '#9CA3AF']
 
 function toChartData(record: Record<string, number>) {
@@ -36,6 +38,7 @@ export default function DashboardPage() {
   const [payments, setPayments] = useState<PaymentRecord[]>([])
   const [assignments, setAssignments] = useState<ContractorAssignment[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedPeriod, setSelectedPeriod] = useState('全期')
 
   useEffect(() => {
     Promise.all([getProjects(), getPaymentRecords(), getContractorAssignments()])
@@ -47,17 +50,21 @@ export default function DashboardPage() {
       .finally(() => setLoading(false))
   }, [])
 
+  const filteredProjects = useMemo(() =>
+    selectedPeriod === '全期' ? projects : projects.filter(p => p.period === selectedPeriod),
+    [projects, selectedPeriod])
+
   const confirmedTotal = useMemo(() =>
-    projects.filter(p => p.probability === '確定' && p.status !== '失注')
-      .reduce((s, p) => s + p.amount, 0), [projects])
+    filteredProjects.filter(p => p.probability === '確定' && p.status !== '失注')
+      .reduce((s, p) => s + p.amount, 0), [filteredProjects])
 
   const prospectTotal = useMemo(() =>
-    projects.filter(p => ['確度（低）', '確度（中）', '確度（高）'].includes(p.probability))
-      .reduce((s, p) => s + p.amount, 0), [projects])
+    filteredProjects.filter(p => ['確度（低）', '確度（中）', '確度（高）'].includes(p.probability))
+      .reduce((s, p) => s + p.amount, 0), [filteredProjects])
 
   const taxTotal = useMemo(() =>
-    projects.filter(p => p.probability === '確定' && p.status !== '失注')
-      .reduce((s, p) => s + p.tax_amount, 0), [projects])
+    filteredProjects.filter(p => p.probability === '確定' && p.status !== '失注')
+      .reduce((s, p) => s + p.tax_amount, 0), [filteredProjects])
 
   const paymentByMonth = useMemo(() =>
     payments.reduce<Record<string, number>>((acc, r) => {
@@ -66,11 +73,11 @@ export default function DashboardPage() {
     }, {}), [payments])
 
   const invoiceByMonth = useMemo(() =>
-    projects.filter(p => p.invoice_month && p.probability === '確定')
+    filteredProjects.filter(p => p.invoice_month && p.probability === '確定')
       .reduce<Record<string, number>>((acc, p) => {
         if (p.invoice_month) acc[p.invoice_month] = (acc[p.invoice_month] || 0) + p.amount
         return acc
-      }, {}), [projects])
+      }, {}), [filteredProjects])
 
   const outsourceByMonth = useMemo(() =>
     assignments.reduce<Record<string, number>>((acc, a) => {
@@ -79,16 +86,16 @@ export default function DashboardPage() {
     }, {}), [assignments])
 
   const probabilityData = useMemo(() => [
-    { name: '確度（低）', value: projects.filter(p => p.probability === '確度（低）').reduce((s, p) => s + p.amount, 0) },
-    { name: '確度（中）', value: projects.filter(p => p.probability === '確度（中）').reduce((s, p) => s + p.amount, 0) },
-    { name: '確度（高）', value: projects.filter(p => p.probability === '確度（高）').reduce((s, p) => s + p.amount, 0) },
-    { name: '確定', value: projects.filter(p => p.probability === '確定').reduce((s, p) => s + p.amount, 0) },
-    { name: '保留', value: projects.filter(p => p.probability === '保留・トラブル有り').reduce((s, p) => s + p.amount, 0) },
-    { name: '失注', value: projects.filter(p => p.probability === '失注').reduce((s, p) => s + p.amount, 0) },
-  ], [projects])
+    { name: '確度（低）', value: filteredProjects.filter(p => p.probability === '確度（低）').reduce((s, p) => s + p.amount, 0) },
+    { name: '確度（中）', value: filteredProjects.filter(p => p.probability === '確度（中）').reduce((s, p) => s + p.amount, 0) },
+    { name: '確度（高）', value: filteredProjects.filter(p => p.probability === '確度（高）').reduce((s, p) => s + p.amount, 0) },
+    { name: '確定', value: filteredProjects.filter(p => p.probability === '確定').reduce((s, p) => s + p.amount, 0) },
+    { name: '保留', value: filteredProjects.filter(p => p.probability === '保留・トラブル有り').reduce((s, p) => s + p.amount, 0) },
+    { name: '失注', value: filteredProjects.filter(p => p.probability === '失注').reduce((s, p) => s + p.amount, 0) },
+  ], [filteredProjects])
 
   const troubleProjects = useMemo(() =>
-    projects.filter(p => p.probability === '保留・トラブル有り'), [projects])
+    filteredProjects.filter(p => p.probability === '保留・トラブル有り'), [filteredProjects])
 
   if (loading) {
     return (
@@ -100,6 +107,17 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* 期フィルター */}
+      <div className="flex gap-1 p-1 rounded-lg w-fit" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+        {PERIODS.map(p => (
+          <button key={p} onClick={() => setSelectedPeriod(p)}
+            className={cn('px-4 py-1.5 text-xs font-medium rounded-md transition-all')}
+            style={selectedPeriod === p ? { background: 'var(--primary)', color: 'white' } : { color: 'var(--muted)' }}>
+            {p}
+          </button>
+        ))}
+      </div>
+
       {/* KPIカード */}
       <div className="grid grid-cols-3 gap-4">
         <Card>

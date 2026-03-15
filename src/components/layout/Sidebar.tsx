@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
   FolderKanban,
@@ -9,8 +9,10 @@ import {
   Users,
   Settings,
   ChevronRight,
+  LogOut,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
 
 const navItems = [
   {
@@ -42,6 +44,14 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
 
   return (
     <aside className="fixed left-0 top-0 h-full w-60 flex flex-col" style={{ background: 'var(--sidebar)' }}>
@@ -82,16 +92,24 @@ export default function Sidebar() {
       </nav>
 
       {/* フッター */}
-      <div className="px-4 py-4 border-t border-white/10">
+      <div className="px-4 py-4 border-t border-white/10 space-y-2">
         <div className="flex items-center gap-3 px-2">
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: 'var(--accent)' }}>
             管
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="text-white text-sm font-medium">管理者</p>
-            <p className="text-xs" style={{ color: 'var(--sidebar-muted)' }}>admin</p>
+            <p className="text-xs truncate" style={{ color: 'var(--sidebar-muted)' }}>admin</p>
           </div>
         </div>
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors hover:bg-white/5"
+          style={{ color: 'var(--sidebar-muted)' }}
+        >
+          <LogOut size={15} />
+          <span>ログアウト</span>
+        </button>
       </div>
     </aside>
   )

@@ -28,7 +28,7 @@ export default function ProjectsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Project | undefined>(undefined)
   const [importOpen, setImportOpen] = useState(false)
 
-  const periods = ['全期', '第4期', '第3期', '第2期', '第1期']
+  const periods = ['第4期', '第3期', '第2期', '第1期', '全期']
 
   useEffect(() => {
     getProjects()

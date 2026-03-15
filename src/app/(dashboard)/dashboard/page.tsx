@@ -12,7 +12,7 @@ import {
 import { TrendingUp, TrendingDown, Receipt, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-const PERIODS = ['全期', '第1期', '第2期', '第3期', '第4期', '第5期']
+const PERIODS = ['第5期', '第4期', '第3期', '第2期', '第1期', '全期']
 const probabilityColors = ['#F59E0B', '#F97316', '#3B82F6', '#7A9E7E', '#EF4444', '#9CA3AF']
 
 function toChartData(record: Record<string, number>) {

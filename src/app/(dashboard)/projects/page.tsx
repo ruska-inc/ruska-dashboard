@@ -151,9 +151,9 @@ export default function ProjectsPage() {
       {/* 合計サマリー */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: '件数', value: `${filtered.length}件` },
-          { label: '合計金額（税抜）', value: formatCurrency(filtered.reduce((s, p) => s + p.amount, 0)) },
-          { label: '合計税額', value: formatCurrency(filtered.reduce((s, p) => s + p.tax_amount, 0)) },
+          { label: '件数（確定）', value: `${filtered.filter(p => p.probability === '確定').length}件` },
+          { label: '合計金額（税抜・確定）', value: formatCurrency(filtered.filter(p => p.probability === '確定').reduce((s, p) => s + p.amount, 0)) },
+          { label: '合計税額（確定）', value: formatCurrency(filtered.filter(p => p.probability === '確定').reduce((s, p) => s + p.tax_amount, 0)) },
         ].map(item => (
           <div key={item.label} className="flex items-center justify-between px-4 py-3 rounded-lg border"
             style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>

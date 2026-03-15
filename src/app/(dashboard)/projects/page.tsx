@@ -1,60 +1,55 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { mockProjects } from '@/lib/mock-data'
-import { Project, ProjectStatus, Period } from '@/lib/types'
+import { useState, useMemo, useEffect } from 'react'
+import { Project, ProjectStatus } from '@/lib/types'
 import { Card } from '@/components/ui/Card'
 import { StatusBadge, ProbabilityBadge } from '@/components/ui/Badge'
 import { formatCurrency } from '@/lib/utils'
 import { Plus, Search, ChevronDown, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import ProjectFormModal from '@/components/projects/ProjectFormModal'
-
-const ALL_STATUSES: ProjectStatus[] = [
-  '見積もり中', '進行中', '外注', '請求済み', '着金済み', '立て替え', '完了済', '失注'
-]
+import { getProjects, createProject, updateProject } from '@/lib/supabase/queries'
 
 const STATUS_ORDER: ProjectStatus[] = [
   '見積もり中', '進行中', '外注', '請求済み', '着金済み', '立て替え', '完了済', '失注'
 ]
 
 export default function ProjectsPage() {
+  const [projects, setProjects] = useState<Project[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [selectedPeriod, setSelectedPeriod] = useState<string>('全期')
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
-  const [projects, setProjects] = useState(mockProjects)
   const [modalOpen, setModalOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Project | undefined>(undefined)
 
   const periods = ['全期', '第4期', '第3期', '第2期', '第1期']
 
-  const handleSave = (data: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => {
+  useEffect(() => {
+    getProjects()
+      .then(setProjects)
+      .finally(() => setLoading(false))
+  }, [])
+
+  const handleSave = async (data: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => {
     if (editTarget) {
-      setProjects(prev => prev.map(p => p.id === editTarget.id ? { ...p, ...data } : p))
+      const updated = await updateProject(editTarget.id, data)
+      setProjects(prev => prev.map(p => p.id === editTarget.id ? updated : p))
     } else {
-      const newProject: Project = {
-        ...data,
-        id: String(Date.now()),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }
-      setProjects(prev => [newProject, ...prev])
+      const created = await createProject(data)
+      setProjects(prev => [created, ...prev])
     }
     setEditTarget(undefined)
   }
 
   const filtered = useMemo(() => {
     return projects.filter(p => {
-      const matchSearch =
-        p.name.includes(search) ||
-        p.client_name.includes(search)
-      const matchPeriod =
-        selectedPeriod === '全期' || p.period === selectedPeriod
+      const matchSearch = p.name.includes(search) || p.client_name.includes(search)
+      const matchPeriod = selectedPeriod === '全期' || p.period === selectedPeriod
       return matchSearch && matchPeriod
     })
-  }, [search, selectedPeriod])
+  }, [projects, search, selectedPeriod])
 
-  // ステータスでグループ化
   const grouped = useMemo(() => {
     const groups: Record<string, Project[]> = {}
     STATUS_ORDER.forEach(status => {
@@ -63,9 +58,6 @@ export default function ProjectsPage() {
     })
     return groups
   }, [filtered])
-
-  const openNew = () => { setEditTarget(undefined); setModalOpen(true) }
-  const openEdit = (p: Project) => { setEditTarget(p); setModalOpen(true) }
 
   const toggleGroup = (key: string) => {
     setCollapsedGroups(prev => {
@@ -76,6 +68,9 @@ export default function ProjectsPage() {
     })
   }
 
+  const openNew = () => { setEditTarget(undefined); setModalOpen(true) }
+  const openEdit = (p: Project) => { setEditTarget(p); setModalOpen(true) }
+
   return (
     <div className="space-y-4">
       <ProjectFormModal
@@ -84,6 +79,7 @@ export default function ProjectsPage() {
         onSave={handleSave}
         initial={editTarget}
       />
+
       {/* ツールバー */}
       <div className="flex items-center gap-3">
         <div className="flex-1 relative">
@@ -93,26 +89,16 @@ export default function ProjectsPage() {
             onChange={e => setSearch(e.target.value)}
             placeholder="プロジェクト名・顧客名で検索"
             className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border outline-none focus:ring-2"
-            style={{
-              background: 'var(--card)',
-              borderColor: 'var(--border)',
-              color: 'var(--foreground)',
-            }}
+            style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
           />
         </div>
 
-        {/* 期フィルター */}
         <div className="flex gap-1 p-1 rounded-lg" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
           {periods.map(p => (
             <button
               key={p}
               onClick={() => setSelectedPeriod(p)}
-              className={cn(
-                'px-3 py-1.5 text-xs font-medium rounded-md transition-all',
-                selectedPeriod === p
-                  ? 'text-white'
-                  : 'hover:bg-gray-50'
-              )}
+              className={cn('px-3 py-1.5 text-xs font-medium rounded-md transition-all')}
               style={selectedPeriod === p ? { background: 'var(--primary)', color: 'white' } : { color: 'var(--muted)' }}
             >
               {p}
@@ -137,25 +123,27 @@ export default function ProjectsPage() {
           { label: '合計金額（税抜）', value: formatCurrency(filtered.reduce((s, p) => s + p.amount, 0)) },
           { label: '合計税額', value: formatCurrency(filtered.reduce((s, p) => s + p.tax_amount, 0)) },
         ].map(item => (
-          <div
-            key={item.label}
-            className="flex items-center justify-between px-4 py-3 rounded-lg border"
-            style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
-          >
+          <div key={item.label} className="flex items-center justify-between px-4 py-3 rounded-lg border"
+            style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
             <span className="text-xs" style={{ color: 'var(--muted)' }}>{item.label}</span>
             <span className="text-sm font-semibold">{item.value}</span>
           </div>
         ))}
       </div>
 
+      {loading && (
+        <div className="text-center py-16" style={{ color: 'var(--muted)' }}>
+          <p className="text-sm">読み込み中...</p>
+        </div>
+      )}
+
       {/* グループ別テーブル */}
-      {Object.entries(grouped).map(([status, projects]) => {
+      {!loading && Object.entries(grouped).map(([status, items]) => {
         const isCollapsed = collapsedGroups.has(status)
-        const groupTotal = projects.reduce((s, p) => s + p.amount, 0)
+        const groupTotal = items.reduce((s, p) => s + p.amount, 0)
 
         return (
           <Card key={status} className="p-0 overflow-hidden">
-            {/* グループヘッダー */}
             <button
               onClick={() => toggleGroup(status)}
               className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50"
@@ -163,62 +151,43 @@ export default function ProjectsPage() {
             >
               {isCollapsed ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
               <StatusBadge status={status as ProjectStatus} />
-              <span className="text-xs" style={{ color: 'var(--muted)' }}>
-                {projects.length}件
-              </span>
+              <span className="text-xs" style={{ color: 'var(--muted)' }}>{items.length}件</span>
               <span className="ml-auto text-xs font-medium" style={{ color: 'var(--muted)' }}>
                 合計 {formatCurrency(groupTotal)}
               </span>
             </button>
 
-            {/* テーブル */}
             {!isCollapsed && (
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)', background: '#FAFAFA' }}>
-                    <th className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>プロジェクト名</th>
-                    <th className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>顧客名</th>
-                    <th className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>確度</th>
-                    <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>金額（税抜）</th>
-                    <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>税額</th>
-                    <th className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>期</th>
-                    <th className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>請求月</th>
+                    {['プロジェクト名', '顧客名', '確度', '金額（税抜）', '税額', '期', '請求月'].map(h => (
+                      <th key={h} className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {projects.map((project, i) => (
+                  {items.map((project, i) => (
                     <tr
                       key={project.id}
                       onClick={() => openEdit(project)}
                       className="cursor-pointer transition-colors hover:bg-gray-50"
-                      style={{ borderBottom: i < projects.length - 1 ? '1px solid var(--border)' : 'none' }}
+                      style={{ borderBottom: i < items.length - 1 ? '1px solid var(--border)' : 'none' }}
                     >
                       <td className="px-4 py-3 font-medium max-w-[240px]">
                         <span className="block truncate">{project.name}</span>
                       </td>
                       <td className="px-4 py-3 max-w-[160px]">
-                        <span
-                          className="inline-block px-2 py-0.5 rounded-full text-xs truncate max-w-full"
-                          style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
-                        >
+                        <span className="inline-block px-2 py-0.5 rounded-full text-xs truncate max-w-full"
+                          style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>
                           {project.client_name}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
-                        <ProbabilityBadge probability={project.probability} />
-                      </td>
-                      <td className="px-4 py-3 text-right font-medium">
-                        {formatCurrency(project.amount)}
-                      </td>
-                      <td className="px-4 py-3 text-right" style={{ color: 'var(--muted)' }}>
-                        {formatCurrency(project.tax_amount)}
-                      </td>
-                      <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted)' }}>
-                        {project.period}
-                      </td>
-                      <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted)' }}>
-                        {project.invoice_month ?? '—'}
-                      </td>
+                      <td className="px-4 py-3"><ProbabilityBadge probability={project.probability} /></td>
+                      <td className="px-4 py-3 text-right font-medium">{formatCurrency(project.amount)}</td>
+                      <td className="px-4 py-3 text-right" style={{ color: 'var(--muted)' }}>{formatCurrency(project.tax_amount)}</td>
+                      <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted)' }}>{project.period}</td>
+                      <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted)' }}>{project.invoice_month ?? '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -228,7 +197,7 @@ export default function ProjectsPage() {
         )
       })}
 
-      {filtered.length === 0 && (
+      {!loading && filtered.length === 0 && (
         <div className="text-center py-16" style={{ color: 'var(--muted)' }}>
           <p className="text-sm">該当するプロジェクトがありません</p>
         </div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Modal from '@/components/ui/Modal'
-import { Contractor, ContractorAssignment, PaymentStatus } from '@/lib/types'
+import { Contractor, ContractorAssignment, PaymentStatus, Period } from '@/lib/types'
 
 interface Props {
   open: boolean
@@ -18,6 +18,7 @@ const labelClass = 'block text-xs font-medium mb-1'
 const labelStyle = { color: 'var(--muted)' }
 
 const PAYMENT_STATUSES: PaymentStatus[] = ['未対応', '確認中', '支払済']
+const PERIODS: Period[] = ['第1期', '第2期', '第3期', '第4期', '第5期']
 
 export default function AssignmentFormModal({ open, onClose, onSave, contractors, initial }: Props) {
   const [form, setForm] = useState({
@@ -28,6 +29,7 @@ export default function AssignmentFormModal({ open, onClose, onSave, contractors
     invoice_month: initial?.invoice_month ?? '',
     payment_month: initial?.payment_month ?? '',
     payment_status: initial?.payment_status ?? '未対応' as PaymentStatus,
+    period: initial?.period ?? '第4期' as Period,
     notes: initial?.notes ?? '',
   })
 
@@ -40,6 +42,7 @@ export default function AssignmentFormModal({ open, onClose, onSave, contractors
       invoice_month: initial?.invoice_month ?? '',
       payment_month: initial?.payment_month ?? '',
       payment_status: initial?.payment_status ?? '未対応',
+      period: initial?.period ?? '第4期',
       notes: initial?.notes ?? '',
     })
   }, [open, initial])
@@ -143,6 +146,18 @@ export default function AssignmentFormModal({ open, onClose, onSave, contractors
               placeholder="例: 2025年5月"
             />
           </div>
+        </div>
+
+        <div>
+          <label className={labelClass} style={labelStyle}>期</label>
+          <select
+            value={form.period}
+            onChange={e => setForm(f => ({ ...f, period: e.target.value as Period }))}
+            className={inputClass}
+            style={inputStyle}
+          >
+            {PERIODS.map(p => <option key={p}>{p}</option>)}
+          </select>
         </div>
 
         <div>

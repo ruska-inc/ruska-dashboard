@@ -61,6 +61,7 @@ export interface PaymentRecord {
   payment_date: string
   amount: number
   payment_month: string
+  period: Period
   created_at: string
 }
 
@@ -92,6 +93,7 @@ export interface ContractorAssignment {
   invoice_month: string | null
   payment_month: string | null
   payment_status: PaymentStatus
+  period: Period
   notes: string | null
   created_at: string
 }

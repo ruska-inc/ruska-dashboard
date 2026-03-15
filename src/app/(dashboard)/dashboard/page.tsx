@@ -66,11 +66,19 @@ export default function DashboardPage() {
     filteredProjects.filter(p => p.probability === '確定' && p.status !== '失注')
       .reduce((s, p) => s + p.tax_amount, 0), [filteredProjects])
 
+  const filteredPayments = useMemo(() =>
+    selectedPeriod === '全期' ? payments : payments.filter(p => p.period === selectedPeriod),
+    [payments, selectedPeriod])
+
+  const filteredAssignments = useMemo(() =>
+    selectedPeriod === '全期' ? assignments : assignments.filter(a => a.period === selectedPeriod),
+    [assignments, selectedPeriod])
+
   const paymentByMonth = useMemo(() =>
-    payments.reduce<Record<string, number>>((acc, r) => {
+    filteredPayments.reduce<Record<string, number>>((acc, r) => {
       acc[r.payment_month] = (acc[r.payment_month] || 0) + r.amount
       return acc
-    }, {}), [payments])
+    }, {}), [filteredPayments])
 
   const invoiceByMonth = useMemo(() =>
     filteredProjects.filter(p => p.invoice_month && p.probability === '確定')
@@ -80,10 +88,10 @@ export default function DashboardPage() {
       }, {}), [filteredProjects])
 
   const outsourceByMonth = useMemo(() =>
-    assignments.reduce<Record<string, number>>((acc, a) => {
+    filteredAssignments.reduce<Record<string, number>>((acc, a) => {
       if (a.invoice_month) acc[a.invoice_month] = (acc[a.invoice_month] || 0) + a.amount_excl_tax
       return acc
-    }, {}), [assignments])
+    }, {}), [filteredAssignments])
 
   const probabilityData = useMemo(() => [
     { name: '確度（低）', value: filteredProjects.filter(p => p.probability === '確度（低）').reduce((s, p) => s + p.amount, 0) },

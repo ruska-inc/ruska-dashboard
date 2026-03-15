@@ -11,8 +11,8 @@ import {
 } from 'recharts'
 import { TrendingUp, TrendingDown, Receipt, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { usePeriods } from '@/lib/hooks/usePeriods'
 
-const PERIODS = ['第5期', '第4期', '第3期', '第2期', '第1期', '全期']
 const probabilityColors = ['#F59E0B', '#F97316', '#3B82F6', '#7A9E7E', '#EF4444', '#9CA3AF']
 
 function toChartData(record: Record<string, number>) {
@@ -39,6 +39,7 @@ export default function DashboardPage() {
   const [assignments, setAssignments] = useState<ContractorAssignment[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedPeriod, setSelectedPeriod] = useState('全期')
+  const { periods } = usePeriods()
 
   useEffect(() => {
     Promise.all([getProjects(), getPaymentRecords(), getContractorAssignments()])
@@ -117,7 +118,7 @@ export default function DashboardPage() {
     <div className="space-y-6">
       {/* 期フィルター */}
       <div className="flex gap-1 p-1 rounded-lg w-fit" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-        {PERIODS.map(p => (
+        {[...periods.map(p => p.name), '全期'].map(p => (
           <button key={p} onClick={() => setSelectedPeriod(p)}
             className={cn('px-4 py-1.5 text-xs font-medium rounded-md transition-all')}
             style={selectedPeriod === p ? { background: 'var(--primary)', color: 'white' } : { color: 'var(--muted)' }}>

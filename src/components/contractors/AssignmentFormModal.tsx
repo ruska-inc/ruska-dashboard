@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Modal from '@/components/ui/Modal'
 import { Contractor, ContractorAssignment, PaymentStatus, Period } from '@/lib/types'
+import { usePeriods } from '@/lib/hooks/usePeriods'
 
 interface Props {
   open: boolean
@@ -18,9 +19,11 @@ const labelClass = 'block text-xs font-medium mb-1'
 const labelStyle = { color: 'var(--muted)' }
 
 const PAYMENT_STATUSES: PaymentStatus[] = ['未対応', '確認中', '支払済']
-const PERIODS: Period[] = ['第1期', '第2期', '第3期', '第4期', '第5期']
 
 export default function AssignmentFormModal({ open, onClose, onSave, contractors, initial }: Props) {
+  const { periods: periodSettings } = usePeriods()
+  const PERIODS = periodSettings.map(p => p.name)
+
   const [form, setForm] = useState({
     contractor_id: initial?.contractor_id ?? contractors[0]?.id ?? '',
     project_name: initial?.project_name ?? '',

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Modal from '@/components/ui/Modal'
 import { PaymentRecord, Period } from '@/lib/types'
+import { usePeriods } from '@/lib/hooks/usePeriods'
 
 interface Props {
   open: boolean
@@ -10,13 +11,15 @@ interface Props {
   onSave: (record: Omit<PaymentRecord, 'id' | 'created_at'>) => void
 }
 
-const PERIODS: Period[] = ['第1期', '第2期', '第3期', '第4期', '第5期']
 const inputClass = 'w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2'
 const inputStyle = { background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }
 const labelClass = 'block text-xs font-medium mb-1'
 const labelStyle = { color: 'var(--muted)' }
 
 export default function PaymentFormModal({ open, onClose, onSave }: Props) {
+  const { periods: periodSettings } = usePeriods()
+  const PERIODS = periodSettings.map(p => p.name)
+
   const [form, setForm] = useState({
     project_id: '',
     project_name: '',

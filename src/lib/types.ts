@@ -30,7 +30,14 @@ export type ProjectProbability =
   | '失注'
 
 // 期
-export type Period = '第1期' | '第2期' | '第3期' | '第4期' | '第5期'
+export type Period = string
+
+export interface PeriodSetting {
+  id: string
+  name: string
+  sort_order: number
+  created_at: string
+}
 
 // プロジェクト
 export interface Project {

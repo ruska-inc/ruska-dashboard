@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { UserRole } from '@/lib/types'
-import { Shield, User, Plus, Download, Mail, ChevronDown } from 'lucide-react'
-import { getAllProfiles, updateProfileRole } from '@/lib/supabase/queries'
+import { Shield, User, Plus, Download, Mail, Trash2, CalendarDays } from 'lucide-react'
+import { getAllProfiles, updateProfileRole, getPeriods, createPeriod, deletePeriod } from '@/lib/supabase/queries'
 import { createClient } from '@/lib/supabase/client'
+import { PeriodSetting } from '@/lib/types'
 
 const roleLabels: Record<UserRole, string> = {
   admin: '管理者',
@@ -28,6 +29,9 @@ const inputStyle = { background: 'var(--card)', borderColor: 'var(--border)', co
 
 export default function SettingsPage() {
   const [profiles, setProfiles] = useState<any[]>([])
+  const [periods, setPeriods] = useState<PeriodSetting[]>([])
+  const [newPeriodName, setNewPeriodName] = useState('')
+  const [addingPeriod, setAddingPeriod] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteName, setInviteName] = useState('')
   const [inviteRole, setInviteRole] = useState<UserRole>('internal')
@@ -37,7 +41,26 @@ export default function SettingsPage() {
 
   useEffect(() => {
     getAllProfiles().then(setProfiles).catch(() => {})
+    getPeriods().then(setPeriods).catch(() => {})
   }, [])
+
+  const handleAddPeriod = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newPeriodName.trim()) return
+    setAddingPeriod(true)
+    try {
+      const created = await createPeriod(newPeriodName.trim())
+      setPeriods(prev => [created, ...prev])
+      setNewPeriodName('')
+    } finally {
+      setAddingPeriod(false)
+    }
+  }
+
+  const handleDeletePeriod = async (id: string) => {
+    await deletePeriod(id)
+    setPeriods(prev => prev.filter(p => p.id !== id))
+  }
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -198,6 +221,48 @@ export default function SettingsPage() {
               </select>
             </div>
           ))}
+        </div>
+      </Card>
+
+      {/* 期管理 */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <CalendarDays size={16} style={{ color: 'var(--accent)' }} />
+            <CardTitle>期の管理</CardTitle>
+          </div>
+        </CardHeader>
+
+        <form onSubmit={handleAddPeriod} className="flex gap-2 mb-4">
+          <input
+            value={newPeriodName}
+            onChange={e => setNewPeriodName(e.target.value)}
+            placeholder="例: 第5期"
+            className="flex-1 px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2"
+            style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+          />
+          <button type="submit" disabled={addingPeriod || !newPeriodName.trim()}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-white disabled:opacity-50"
+            style={{ background: 'var(--primary)' }}>
+            <Plus size={13} />追加
+          </button>
+        </form>
+
+        <div className="space-y-2">
+          {periods.map(period => (
+            <div key={period.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg"
+              style={{ background: '#FAFAFA', border: '1px solid var(--border)' }}>
+              <span className="text-sm font-medium">{period.name}</span>
+              <button onClick={() => handleDeletePeriod(period.id)}
+                className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-red-50"
+                style={{ color: '#EF4444' }}>
+                <Trash2 size={13} />
+              </button>
+            </div>
+          ))}
+          {periods.length === 0 && (
+            <p className="text-xs text-center py-4" style={{ color: 'var(--muted)' }}>期が登録されていません</p>
+          )}
         </div>
       </Card>
 

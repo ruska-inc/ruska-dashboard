@@ -1,5 +1,5 @@
 import { createClient } from './client'
-import { Project, PaymentRecord, Contractor, ContractorAssignment, UserRole } from '@/lib/types'
+import { Project, PaymentRecord, Contractor, ContractorAssignment, UserRole, PeriodSetting } from '@/lib/types'
 
 // =============================================
 // プロジェクト
@@ -161,5 +161,33 @@ export async function updateContractorAssignment(
 export async function deleteContractorAssignment(id: string) {
   const supabase = createClient()
   const { error } = await supabase.from('contractor_assignments').delete().eq('id', id)
+  if (error) throw error
+}
+
+// =============================================
+// 期設定
+// =============================================
+
+export async function getPeriods() {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('periods').select('*').order('sort_order', { ascending: false })
+  if (error) throw error
+  return data as PeriodSetting[]
+}
+
+export async function createPeriod(name: string) {
+  const supabase = createClient()
+  const { data: existing } = await supabase.from('periods').select('sort_order').order('sort_order', { ascending: false }).limit(1)
+  const maxOrder = existing?.[0]?.sort_order ?? 0
+  const { data, error } = await supabase
+    .from('periods').insert({ name, sort_order: maxOrder + 1 }).select().single()
+  if (error) throw error
+  return data as PeriodSetting
+}
+
+export async function deletePeriod(id: string) {
+  const supabase = createClient()
+  const { error } = await supabase.from('periods').delete().eq('id', id)
   if (error) throw error
 }

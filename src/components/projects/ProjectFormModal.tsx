@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Modal from '@/components/ui/Modal'
 import { Project, ProjectStatus, ProjectProbability, Period } from '@/lib/types'
+import { usePeriods } from '@/lib/hooks/usePeriods'
 
 const STATUSES: ProjectStatus[] = [
   '見積もり中', '進行中', '外注', '請求済み', '着金済み', '立て替え', '完了済', '失注'
@@ -10,7 +11,6 @@ const STATUSES: ProjectStatus[] = [
 const PROBABILITIES: ProjectProbability[] = [
   '確度（低）', '確度（中）', '確度（高）', '確定', '保留・トラブル有り', '失注'
 ]
-const PERIODS: Period[] = ['第1期', '第2期', '第3期', '第4期', '第5期']
 
 interface Props {
   open: boolean
@@ -29,6 +29,9 @@ const labelClass = 'block text-xs font-medium mb-1'
 const labelStyle = { color: 'var(--muted)' }
 
 export default function ProjectFormModal({ open, onClose, onSave, initial }: Props) {
+  const { periods: periodSettings } = usePeriods()
+  const PERIODS = periodSettings.map(p => p.name)
+
   const [form, setForm] = useState({
     name: initial?.name ?? '',
     client_name: initial?.client_name ?? '',

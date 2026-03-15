@@ -12,6 +12,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import ExcelImportModal from '@/components/import/ExcelImportModal'
 import { getProjects, createProject, updateProject, deleteProject } from '@/lib/supabase/queries'
 import { Trash2, Upload } from 'lucide-react'
+import { usePeriods } from '@/lib/hooks/usePeriods'
 
 const STATUS_ORDER: ProjectStatus[] = [
   '見積もり中', '進行中', '外注', '請求済み', '着金済み', '立て替え', '完了済', '失注'
@@ -27,8 +28,8 @@ export default function ProjectsPage() {
   const [editTarget, setEditTarget] = useState<Project | undefined>(undefined)
   const [deleteTarget, setDeleteTarget] = useState<Project | undefined>(undefined)
   const [importOpen, setImportOpen] = useState(false)
-
-  const periods = ['第4期', '第3期', '第2期', '第1期', '全期']
+  const { periods: periodSettings } = usePeriods()
+  const periods = [...periodSettings.map(p => p.name), '全期']
 
   useEffect(() => {
     getProjects()

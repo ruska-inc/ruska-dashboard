@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Modal from '@/components/ui/Modal'
 import { Project, ProjectStatus, ProjectProbability, Period } from '@/lib/types'
 
@@ -44,6 +44,24 @@ export default function ProjectFormModal({ open, onClose, onSave, initial }: Pro
     invoice_url: initial?.invoice_url ?? '',
     parent_id: initial?.parent_id ?? null,
   })
+
+  useEffect(() => {
+    setForm({
+      name: initial?.name ?? '',
+      client_name: initial?.client_name ?? '',
+      status: initial?.status ?? '見積もり中',
+      probability: initial?.probability ?? '確度（中）',
+      amount: initial?.amount ?? 0,
+      tax_amount: initial?.tax_amount ?? 0,
+      period: initial?.period ?? '第4期',
+      invoice_month: initial?.invoice_month ?? '',
+      payment_month: initial?.payment_month ?? '',
+      notes: initial?.notes ?? '',
+      estimate_url: initial?.estimate_url ?? '',
+      invoice_url: initial?.invoice_url ?? '',
+      parent_id: initial?.parent_id ?? null,
+    })
+  }, [open, initial])
 
   const handleAmountChange = (value: string) => {
     const amount = Number(value) || 0

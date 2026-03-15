@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Modal from '@/components/ui/Modal'
 import { Contractor, InvoiceStatus } from '@/lib/types'
 
@@ -27,6 +27,18 @@ export default function ContractorFormModal({ open, onClose, onSave, initial }: 
     phone: initial?.phone ?? '',
     notes: initial?.notes ?? '',
   })
+
+  useEffect(() => {
+    setForm({
+      company_name: initial?.company_name ?? '',
+      contact_name: initial?.contact_name ?? '',
+      invoice_status: initial?.invoice_status ?? '未定',
+      skills: initial?.skills.join(', ') ?? '',
+      email: initial?.email ?? '',
+      phone: initial?.phone ?? '',
+      notes: initial?.notes ?? '',
+    })
+  }, [open, initial])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

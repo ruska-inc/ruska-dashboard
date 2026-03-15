@@ -99,6 +99,8 @@ export default function ContractorsPage() {
         open={assignmentModal}
         onClose={() => { setAssignmentModal(false); setEditAssignment(undefined) }}
         onSave={handleSaveAssignment}
+        contractors={contractors}
+        initial={editAssignment}
       />
       <ContractorFormModal
         open={contractorModal}

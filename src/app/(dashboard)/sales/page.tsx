@@ -9,7 +9,7 @@ import { Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import PaymentFormModal from '@/components/sales/PaymentFormModal'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
-import { getProjects, getPaymentRecords, createPaymentRecord, deletePaymentRecord } from '@/lib/supabase/queries'
+import { getProjects, getPaymentRecords, createPaymentRecord, updatePaymentRecord, deletePaymentRecord } from '@/lib/supabase/queries'
 import { Trash2 } from 'lucide-react'
 
 const tabs = ['入金記録', '請求管理']
@@ -21,6 +21,7 @@ export default function SalesPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [deleteTarget, setDeleteTarget] = useState<PaymentRecord | undefined>(undefined)
+  const [editTarget, setEditTarget] = useState<PaymentRecord | undefined>(undefined)
 
   useEffect(() => {
     Promise.all([getPaymentRecords(), getProjects()])
@@ -29,8 +30,14 @@ export default function SalesPage() {
   }, [])
 
   const handleSavePayment = async (record: Omit<PaymentRecord, 'id' | 'created_at'>) => {
-    const created = await createPaymentRecord(record)
-    setPayments(prev => [created, ...prev])
+    if (editTarget) {
+      const updated = await updatePaymentRecord(editTarget.id, record)
+      setPayments(prev => prev.map(p => p.id === editTarget.id ? updated : p))
+      setEditTarget(undefined)
+    } else {
+      const created = await createPaymentRecord(record)
+      setPayments(prev => [created, ...prev])
+    }
   }
 
   const handleDeletePayment = async () => {
@@ -48,9 +55,10 @@ export default function SalesPage() {
   return (
     <div className="space-y-5">
       <PaymentFormModal
-        open={paymentModalOpen}
-        onClose={() => setPaymentModalOpen(false)}
+        open={paymentModalOpen || !!editTarget}
+        onClose={() => { setPaymentModalOpen(false); setEditTarget(undefined) }}
         onSave={handleSavePayment}
+        initial={editTarget}
       />
       <ConfirmDialog
         open={!!deleteTarget}
@@ -113,7 +121,9 @@ export default function SalesPage() {
               </thead>
               <tbody>
                 {payments.map((record, i) => (
-                  <tr key={record.id} className="hover:bg-gray-50 transition-colors group"
+                  <tr key={record.id}
+                    onClick={() => setEditTarget(record)}
+                    className="cursor-pointer hover:bg-gray-50 transition-colors group"
                     style={{ borderBottom: i < payments.length - 1 ? '1px solid var(--border)' : 'none' }}>
                     <td className="px-4 py-3 font-medium">{record.project_name}</td>
                     <td className="px-4 py-3">
@@ -127,7 +137,7 @@ export default function SalesPage() {
                     <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted)' }}>{record.payment_month}</td>
                     <td className="px-4 py-3">
                       <button
-                        onClick={() => setDeleteTarget(record)}
+                        onClick={e => { e.stopPropagation(); setDeleteTarget(record) }}
                         className="w-7 h-7 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50"
                         style={{ color: '#EF4444' }}>
                         <Trash2 size={13} />

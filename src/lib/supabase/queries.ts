@@ -87,6 +87,13 @@ export async function createPaymentRecord(record: Omit<PaymentRecord, 'id' | 'cr
   return data as PaymentRecord
 }
 
+export async function updatePaymentRecord(id: string, record: Partial<Omit<PaymentRecord, 'id' | 'created_at'>>) {
+  const supabase = createClient()
+  const { data, error } = await supabase.from('payment_records').update(record).eq('id', id).select().single()
+  if (error) throw error
+  return data as PaymentRecord
+}
+
 export async function deletePaymentRecord(id: string) {
   const supabase = createClient()
   const { error } = await supabase.from('payment_records').delete().eq('id', id)

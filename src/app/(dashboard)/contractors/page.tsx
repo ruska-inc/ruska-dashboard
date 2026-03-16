@@ -173,7 +173,9 @@ export default function ContractorsPage() {
               </thead>
               <tbody>
                 {assignments.map((a, i) => (
-                  <tr key={a.id} className="hover:bg-gray-50 transition-colors group"
+                  <tr key={a.id}
+                    onClick={() => { setEditAssignment(a); setAssignmentModal(true) }}
+                    className="cursor-pointer hover:bg-gray-50 transition-colors group"
                     style={{ borderBottom: i < assignments.length - 1 ? '1px solid var(--border)' : 'none' }}>
                     <td className="px-4 py-3 font-medium max-w-[160px]"><span className="block truncate">{a.project_name}</span></td>
                     <td className="px-4 py-3">
@@ -187,10 +189,10 @@ export default function ContractorsPage() {
                     <td className="px-4 py-3"><PaymentStatusBadge status={a.payment_status} /></td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => { setEditAssignment(a); setAssignmentModal(true) }}
+                        <button onClick={e => { e.stopPropagation(); setEditAssignment(a); setAssignmentModal(true) }}
                           className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-gray-100"
                           style={{ color: 'var(--muted)' }}><Pencil size={12} /></button>
-                        <button onClick={() => setDeleteAssignmentTarget(a)}
+                        <button onClick={e => { e.stopPropagation(); setDeleteAssignmentTarget(a) }}
                           className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-red-50"
                           style={{ color: '#EF4444' }}><Trash2 size={12} /></button>
                       </div>

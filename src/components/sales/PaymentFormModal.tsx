@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Modal from '@/components/ui/Modal'
 import { PaymentRecord, Period } from '@/lib/types'
 import { usePeriods } from '@/lib/hooks/usePeriods'
@@ -9,6 +9,7 @@ interface Props {
   open: boolean
   onClose: () => void
   onSave: (record: Omit<PaymentRecord, 'id' | 'created_at'>) => void
+  initial?: PaymentRecord
 }
 
 const inputClass = 'w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2'
@@ -16,19 +17,31 @@ const inputStyle = { background: 'var(--card)', borderColor: 'var(--border)', co
 const labelClass = 'block text-xs font-medium mb-1'
 const labelStyle = { color: 'var(--muted)' }
 
-export default function PaymentFormModal({ open, onClose, onSave }: Props) {
+export default function PaymentFormModal({ open, onClose, onSave, initial }: Props) {
   const { periods: periodSettings } = usePeriods()
   const PERIODS = periodSettings.map(p => p.name)
 
   const [form, setForm] = useState({
-    project_id: '',
-    project_name: '',
-    client_name: '',
-    payment_date: '',
-    amount: 0,
-    payment_month: '',
-    period: '第4期' as Period,
+    project_id: initial?.project_id ?? '',
+    project_name: initial?.project_name ?? '',
+    client_name: initial?.client_name ?? '',
+    payment_date: initial?.payment_date ?? '',
+    amount: initial?.amount ?? 0,
+    payment_month: initial?.payment_month ?? '',
+    period: initial?.period ?? '第4期' as Period,
   })
+
+  useEffect(() => {
+    setForm({
+      project_id: initial?.project_id ?? '',
+      project_name: initial?.project_name ?? '',
+      client_name: initial?.client_name ?? '',
+      payment_date: initial?.payment_date ?? '',
+      amount: initial?.amount ?? 0,
+      payment_month: initial?.payment_month ?? '',
+      period: initial?.period ?? '第4期',
+    })
+  }, [open, initial])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,7 +50,7 @@ export default function PaymentFormModal({ open, onClose, onSave }: Props) {
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="入金登録">
+    <Modal open={open} onClose={onClose} title={initial ? '入金記録編集' : '入金登録'}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className={labelClass} style={labelStyle}>プロジェクト名 *</label>
@@ -127,7 +140,7 @@ export default function PaymentFormModal({ open, onClose, onSave }: Props) {
             className="px-4 py-2 text-sm rounded-lg font-medium text-white hover:opacity-90"
             style={{ background: 'var(--primary)' }}
           >
-            登録する
+            {initial ? '更新する' : '登録する'}
           </button>
         </div>
       </form>

@@ -198,7 +198,7 @@ export default function ProjectsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)', background: '#FAFAFA' }}>
-                    {['プロジェクト名', '顧客名', 'ステータス', '確度', '金額（税抜）', '税額', '期', '請求月', ''].map(h => (
+                    {['プロジェクト名', '顧客名', 'ステータス', '確度', '金額（税抜）', '税額', '期', '請求月', '入金月', ''].map(h => (
                       <th key={h} className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>{h}</th>
                     ))}
                   </tr>
@@ -226,6 +226,7 @@ export default function ProjectsPage() {
                       <td className="px-4 py-3 text-right" style={{ color: 'var(--muted)' }}>{formatCurrency(project.tax_amount)}</td>
                       <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted)' }}>{project.period}</td>
                       <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted)' }}>{project.invoice_month ?? '—'}</td>
+                      <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted)' }}>{project.payment_month ?? '—'}</td>
                       <td className="px-4 py-3">
                         <button
                           onClick={e => { e.stopPropagation(); setDeleteTarget(project) }}

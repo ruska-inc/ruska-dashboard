@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Contractor, ContractorAssignment, InvoiceStatus } from '@/lib/types'
 import { Card } from '@/components/ui/Card'
 import { PaymentStatusBadge } from '@/components/ui/Badge'
@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import AssignmentFormModal from '@/components/contractors/AssignmentFormModal'
 import ContractorFormModal from '@/components/contractors/ContractorFormModal'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import { usePeriods } from '@/lib/hooks/usePeriods'
 import {
   getContractors, getContractorAssignments,
   createContractorAssignment, updateContractorAssignment, deleteContractorAssignment,
@@ -42,6 +43,13 @@ export default function ContractorsPage() {
   // 削除確認
   const [deleteAssignmentTarget, setDeleteAssignmentTarget] = useState<ContractorAssignment | undefined>()
   const [deleteContractorTarget, setDeleteContractorTarget] = useState<Contractor | undefined>()
+
+  const [selectedPeriod, setSelectedPeriod] = useState('全期')
+  const { periods } = usePeriods()
+
+  useEffect(() => {
+    if (periods.length > 0) setSelectedPeriod(periods[0].name)
+  }, [periods])
 
   useEffect(() => {
     Promise.all([getContractors(), getContractorAssignments()])
@@ -89,8 +97,12 @@ export default function ContractorsPage() {
     setDeleteContractorTarget(undefined)
   }
 
-  const totalPaid = assignments.filter(a => a.payment_status === '支払済').reduce((s, a) => s + a.amount_excl_tax, 0)
-  const totalPending = assignments.filter(a => a.payment_status === '未対応').reduce((s, a) => s + a.amount_excl_tax, 0)
+  const filteredAssignments = useMemo(() =>
+    selectedPeriod === '全期' ? assignments : assignments.filter(a => a.period === selectedPeriod),
+    [assignments, selectedPeriod])
+
+  const totalPaid = filteredAssignments.filter(a => a.payment_status === '支払済').reduce((s, a) => s + a.amount_excl_tax, 0)
+  const totalPending = filteredAssignments.filter(a => a.payment_status === '未対応').reduce((s, a) => s + a.amount_excl_tax, 0)
 
   return (
     <div className="space-y-5">
@@ -123,15 +135,28 @@ export default function ContractorsPage() {
         onCancel={() => setDeleteContractorTarget(undefined)}
       />
 
-      {/* タブ */}
-      <div className="flex gap-1 p-1 rounded-lg w-fit" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-        {tabs.map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)}
-            className="px-4 py-1.5 text-sm font-medium rounded-md transition-all"
-            style={activeTab === tab ? { background: 'var(--primary)', color: 'white' } : { color: 'var(--muted)' }}>
-            {tab}
-          </button>
-        ))}
+      {/* タブ・期フィルター */}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-1 p-1 rounded-lg w-fit" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+          {tabs.map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab)}
+              className="px-4 py-1.5 text-sm font-medium rounded-md transition-all"
+              style={activeTab === tab ? { background: 'var(--primary)', color: 'white' } : { color: 'var(--muted)' }}>
+              {tab}
+            </button>
+          ))}
+        </div>
+        {activeTab === '委託案件' && (
+          <div className="flex gap-1 p-1 rounded-lg" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+            {[...periods.map(p => p.name), '全期'].map(p => (
+              <button key={p} onClick={() => setSelectedPeriod(p)}
+                className={cn('px-3 py-1.5 text-xs font-medium rounded-md transition-all')}
+                style={selectedPeriod === p ? { background: 'var(--primary)', color: 'white' } : { color: 'var(--muted)' }}>
+                {p}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {loading && <div className="text-center py-16"><p className="text-sm" style={{ color: 'var(--muted)' }}>読み込み中...</p></div>}
@@ -150,7 +175,7 @@ export default function ContractorsPage() {
             </Card>
             <Card>
               <p className="text-xs mb-1" style={{ color: 'var(--muted)' }}>委託件数</p>
-              <p className="text-2xl font-bold">{assignments.length}件</p>
+              <p className="text-2xl font-bold">{filteredAssignments.length}件</p>
             </Card>
           </div>
 
@@ -172,11 +197,11 @@ export default function ContractorsPage() {
                 </tr>
               </thead>
               <tbody>
-                {assignments.map((a, i) => (
+                {filteredAssignments.map((a, i) => (
                   <tr key={a.id}
                     onClick={() => { setEditAssignment(a); setAssignmentModal(true) }}
                     className="cursor-pointer hover:bg-gray-50 transition-colors group"
-                    style={{ borderBottom: i < assignments.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                    style={{ borderBottom: i < filteredAssignments.length - 1 ? '1px solid var(--border)' : 'none' }}>
                     <td className="px-4 py-3 font-medium max-w-[160px]"><span className="block truncate">{a.project_name}</span></td>
                     <td className="px-4 py-3">
                       <p className="text-xs font-medium">{a.contractor?.company_name}</p>

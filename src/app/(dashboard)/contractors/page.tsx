@@ -232,67 +232,70 @@ export default function ContractorsPage() {
 
       {/* 委託先マスタタブ */}
       {!loading && activeTab === '委託先マスタ' && (
-        <div className="space-y-4">
-          <div className="flex justify-end">
+        <Card className="p-0 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
+            <h3 className="text-sm font-semibold">委託先マスタ</h3>
             <button onClick={() => { setEditContractor(undefined); setContractorModal(true) }}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white"
               style={{ background: 'var(--primary)' }}>
-              <Plus size={14} />委託先追加
+              <Plus size={13} />委託先追加
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            {contractors.map(contractor => (
-              <Card key={contractor.id} className="space-y-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="font-semibold text-sm">{contractor.company_name}</p>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{contractor.contact_name}</p>
-                  </div>
-                  <div className="flex items-center gap-1">
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--border)', background: '#FAFAFA' }}>
+                {['会社名', '担当者', 'スキル', 'メール', '電話', '適格番号', '案件数', ''].map(h => (
+                  <th key={h} className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {contractors.map((contractor, i) => (
+                <tr key={contractor.id}
+                  onClick={() => { setEditContractor(contractor); setContractorModal(true) }}
+                  className="cursor-pointer hover:bg-gray-50 transition-colors group"
+                  style={{ borderBottom: i < contractors.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                  <td className="px-4 py-3 font-medium">{contractor.company_name}</td>
+                  <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted)' }}>{contractor.contact_name}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-1">
+                      {contractor.skills.map(skill => (
+                        <span key={skill} className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
+                          style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>
+                          <Tag size={10} />{skill}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted)' }}>
+                    {contractor.email && <span className="flex items-center gap-1"><Mail size={11} />{contractor.email}</span>}
+                  </td>
+                  <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted)' }}>
+                    {contractor.phone && <span className="flex items-center gap-1"><Phone size={11} />{contractor.phone}</span>}
+                  </td>
+                  <td className="px-4 py-3">
                     <span className={cn('text-xs px-2 py-0.5 rounded-md font-medium', invoiceStatusColors[contractor.invoice_status])}>
                       {contractor.invoice_status}
                     </span>
-                    <button onClick={() => { setEditContractor(contractor); setContractorModal(true) }}
-                      className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-gray-100"
-                      style={{ color: 'var(--muted)' }}><Pencil size={12} /></button>
-                    <button onClick={() => setDeleteContractorTarget(contractor)}
-                      className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-red-50"
-                      style={{ color: '#EF4444' }}><Trash2 size={12} /></button>
-                  </div>
-                </div>
-
-                {contractor.skills.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {contractor.skills.map(skill => (
-                      <span key={skill} className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
-                        style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>
-                        <Tag size={10} />{skill}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                <div className="space-y-1.5 pt-1" style={{ borderTop: '1px solid var(--border)' }}>
-                  {contractor.email && (
-                    <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--muted)' }}>
-                      <Mail size={12} />{contractor.email}
+                  </td>
+                  <td className="px-4 py-3 text-xs font-medium">
+                    {assignments.filter(a => a.contractor_id === contractor.id).length}件
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={e => { e.stopPropagation(); setEditContractor(contractor); setContractorModal(true) }}
+                        className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-gray-100"
+                        style={{ color: 'var(--muted)' }}><Pencil size={12} /></button>
+                      <button onClick={e => { e.stopPropagation(); setDeleteContractorTarget(contractor) }}
+                        className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-red-50"
+                        style={{ color: '#EF4444' }}><Trash2 size={12} /></button>
                     </div>
-                  )}
-                  {contractor.phone && (
-                    <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--muted)' }}>
-                      <Phone size={12} />{contractor.phone}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <p className="text-xs mb-1" style={{ color: 'var(--muted)' }}>委託案件数</p>
-                  <p className="text-lg font-bold">{assignments.filter(a => a.contractor_id === contractor.id).length}件</p>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
       )}
     </div>
   )

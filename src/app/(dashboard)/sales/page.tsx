@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Project, PaymentRecord } from '@/lib/types'
 import { Card } from '@/components/ui/Card'
 import { StatusBadge } from '@/components/ui/Badge'
@@ -11,6 +11,7 @@ import PaymentFormModal from '@/components/sales/PaymentFormModal'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { getProjects, getPaymentRecords, createPaymentRecord, updatePaymentRecord, deletePaymentRecord } from '@/lib/supabase/queries'
 import { Trash2 } from 'lucide-react'
+import { usePeriods } from '@/lib/hooks/usePeriods'
 
 const tabs = ['入金記録', '請求管理']
 
@@ -22,6 +23,13 @@ export default function SalesPage() {
   const [loading, setLoading] = useState(true)
   const [deleteTarget, setDeleteTarget] = useState<PaymentRecord | undefined>(undefined)
   const [editTarget, setEditTarget] = useState<PaymentRecord | undefined>(undefined)
+  const [selectedPeriod, setSelectedPeriod] = useState('全期')
+  const { periods } = usePeriods()
+
+  useEffect(() => {
+    if (periods.length > 0) setSelectedPeriod(periods[0].name)
+  }, [periods])
+
   useEffect(() => {
     Promise.all([getPaymentRecords(), getProjects()])
       .then(([p, pr]) => { setPayments(p); setProjects(pr) })
@@ -46,8 +54,16 @@ export default function SalesPage() {
     setDeleteTarget(undefined)
   }
 
-  const totalPayments = payments.reduce((s, r) => s + r.amount, 0)
-  const unpaidProjects = projects.filter(
+  const filteredPayments = useMemo(() =>
+    selectedPeriod === '全期' ? payments : payments.filter(p => p.period === selectedPeriod),
+    [payments, selectedPeriod])
+
+  const filteredProjects = useMemo(() =>
+    selectedPeriod === '全期' ? projects : projects.filter(p => p.period === selectedPeriod),
+    [projects, selectedPeriod])
+
+  const totalPayments = filteredPayments.reduce((s, r) => s + r.amount, 0)
+  const unpaidProjects = filteredProjects.filter(
     p => p.status === '請求済み' || (p.probability === '確定' && p.status === '進行中')
   )
 
@@ -67,17 +83,28 @@ export default function SalesPage() {
         onCancel={() => setDeleteTarget(undefined)}
       />
 
-      <div className="flex gap-1 p-1 rounded-lg w-fit" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-        {tabs.map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className="px-4 py-1.5 text-sm font-medium rounded-md transition-all"
-            style={activeTab === tab ? { background: 'var(--primary)', color: 'white' } : { color: 'var(--muted)' }}
-          >
-            {tab}
-          </button>
-        ))}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-1 p-1 rounded-lg w-fit" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+          {tabs.map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className="px-4 py-1.5 text-sm font-medium rounded-md transition-all"
+              style={activeTab === tab ? { background: 'var(--primary)', color: 'white' } : { color: 'var(--muted)' }}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-1 p-1 rounded-lg" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+          {[...periods.map(p => p.name), '全期'].map(p => (
+            <button key={p} onClick={() => setSelectedPeriod(p)}
+              className={cn('px-3 py-1.5 text-xs font-medium rounded-md transition-all')}
+              style={selectedPeriod === p ? { background: 'var(--primary)', color: 'white' } : { color: 'var(--muted)' }}>
+              {p}
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading && (
@@ -95,7 +122,7 @@ export default function SalesPage() {
             </Card>
             <Card>
               <p className="text-xs mb-1" style={{ color: 'var(--muted)' }}>入金件数</p>
-              <p className="text-2xl font-bold">{payments.length}件</p>
+              <p className="text-2xl font-bold">{filteredPayments.length}件</p>
             </Card>
           </div>
 
@@ -119,11 +146,11 @@ export default function SalesPage() {
                 </tr>
               </thead>
               <tbody>
-                {payments.map((record, i) => (
+                {filteredPayments.map((record, i) => (
                   <tr key={record.id}
                     onClick={() => setEditTarget(record)}
                     className="cursor-pointer hover:bg-gray-50 transition-colors group"
-                    style={{ borderBottom: i < payments.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                    style={{ borderBottom: i < filteredPayments.length - 1 ? '1px solid var(--border)' : 'none' }}>
                     <td className="px-4 py-3 font-medium">{record.project_name}</td>
                     <td className="px-4 py-3">
                       <span className="inline-block px-2 py-0.5 rounded-full text-xs"

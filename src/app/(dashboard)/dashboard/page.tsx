@@ -15,9 +15,15 @@ import { usePeriods } from '@/lib/hooks/usePeriods'
 
 const probabilityColors = ['#F59E0B', '#F97316', '#3B82F6', '#7A9E7E', '#EF4444', '#9CA3AF']
 
+function parseMonth(label: string) {
+  const m = label.match(/(\d+)年(\d+)月/)
+  if (!m) return 0
+  return parseInt(m[1]) * 100 + parseInt(m[2])
+}
+
 function toChartData(record: Record<string, number>) {
   return Object.entries(record)
-    .sort(([a], [b]) => a.localeCompare(b))
+    .sort(([a], [b]) => parseMonth(a) - parseMonth(b))
     .map(([month, value]) => ({ month, value }))
 }
 

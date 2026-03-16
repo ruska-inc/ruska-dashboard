@@ -5,7 +5,7 @@ import { Project, PaymentRecord } from '@/lib/types'
 import { Card } from '@/components/ui/Card'
 import { StatusBadge } from '@/components/ui/Badge'
 import { formatCurrency } from '@/lib/utils'
-import { Plus } from 'lucide-react'
+import { Plus, RefreshCw, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import PaymentFormModal from '@/components/sales/PaymentFormModal'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
@@ -22,6 +22,8 @@ export default function SalesPage() {
   const [loading, setLoading] = useState(true)
   const [deleteTarget, setDeleteTarget] = useState<PaymentRecord | undefined>(undefined)
   const [editTarget, setEditTarget] = useState<PaymentRecord | undefined>(undefined)
+  const [syncing, setSyncing] = useState(false)
+  const [syncMsg, setSyncMsg] = useState('')
 
   useEffect(() => {
     Promise.all([getPaymentRecords(), getProjects()])
@@ -47,6 +49,26 @@ export default function SalesPage() {
     setDeleteTarget(undefined)
   }
 
+  const handleMfSync = async () => {
+    setSyncing(true)
+    setSyncMsg('')
+    try {
+      const res = await fetch('/api/moneyforward/sync', { method: 'POST' })
+      const data = await res.json()
+      if (data.error) {
+        setSyncMsg(`エラー: ${data.error}`)
+      } else {
+        setSyncMsg(`✓ ${data.inserted}件の入金データを同期しました`)
+        if (data.inserted > 0) {
+          const updated = await import('@/lib/supabase/queries').then(m => m.getPaymentRecords())
+          setPayments(updated)
+        }
+      }
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   const totalPayments = payments.reduce((s, r) => s + r.amount, 0)
   const unpaidProjects = projects.filter(
     p => p.status === '請求済み' || (p.probability === '確定' && p.status === '進行中')
@@ -68,18 +90,35 @@ export default function SalesPage() {
         onCancel={() => setDeleteTarget(undefined)}
       />
 
-      <div className="flex gap-1 p-1 rounded-lg w-fit" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-        {tabs.map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className="px-4 py-1.5 text-sm font-medium rounded-md transition-all"
-            style={activeTab === tab ? { background: 'var(--primary)', color: 'white' } : { color: 'var(--muted)' }}
-          >
-            {tab}
-          </button>
-        ))}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-1 p-1 rounded-lg w-fit" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+          {tabs.map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className="px-4 py-1.5 text-sm font-medium rounded-md transition-all"
+              style={activeTab === tab ? { background: 'var(--primary)', color: 'white' } : { color: 'var(--muted)' }}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+        <button onClick={handleMfSync} disabled={syncing}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border hover:bg-gray-50 disabled:opacity-50"
+          style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>
+          <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />
+          {syncing ? 'MF同期中...' : 'MF入金同期'}
+        </button>
       </div>
+
+      {syncMsg && (
+        <div className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg"
+          style={{ background: syncMsg.startsWith('✓') ? '#F0FDF4' : '#FEF2F2',
+            color: syncMsg.startsWith('✓') ? '#16A34A' : '#EF4444' }}>
+          <AlertCircle size={12} />
+          {syncMsg}
+        </div>
+      )}
 
       {loading && (
         <div className="text-center py-16" style={{ color: 'var(--muted)' }}>

@@ -1,15 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --background: #F7F7F7;
+  --background: #eef1f5;
   --foreground: #1A1A1A;
-  --card: #FFFFFF;
-  --border: #E5E5E5;
+  --card: rgba(255, 255, 255, 0.52);
+  --border: rgba(255, 255, 255, 0.78);
+  --border-subtle: rgba(0, 0, 0, 0.07);
   --primary: #1A1A1A;
   --accent: #7A9E7E;
-  --accent-light: #EEF4EE;
+  --accent-light: rgba(122, 158, 126, 0.14);
   --muted: #6B7280;
-  --sidebar: #1A1A1A;
+  --sidebar: rgba(18, 20, 26, 0.80);
+  --sidebar-border: rgba(255, 255, 255, 0.10);
   --sidebar-text: #FFFFFF;
   --sidebar-muted: #9CA3AF;
   --danger: #EF4444;
@@ -33,14 +35,45 @@
   --font-sans: var(--font-geist-sans);
 }
 
+html {
+  background:
+    radial-gradient(ellipse at 12% 55%, rgba(122, 158, 126, 0.22) 0%, transparent 52%),
+    radial-gradient(ellipse at 88% 12%, rgba(140, 170, 255, 0.16) 0%, transparent 50%),
+    radial-gradient(ellipse at 65% 88%, rgba(255, 195, 140, 0.13) 0%, transparent 50%),
+    radial-gradient(ellipse at 42% 32%, rgba(190, 215, 255, 0.10) 0%, transparent 48%),
+    #eaecf2;
+  background-attachment: fixed;
+  min-height: 100%;
+}
+
 body {
-  background: var(--background);
   color: var(--foreground);
   font-family: 'Inter', 'Noto Sans JP', sans-serif;
+  background: transparent;
+  min-height: 100vh;
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* ガラスカード共通 */
+.glass {
+  background: var(--card);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.90);
+}
+
+/* テーブル行の薄いガラス */
+.glass-row {
+  background: rgba(255, 255, 255, 0.36) !important;
+}
+.glass-row-head {
+  background: rgba(255, 255, 255, 0.50) !important;
 }
 
 /* スクロールバー */
@@ -49,9 +82,9 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #F7F7F7;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #D1D5DB;
+  background: rgba(0, 0, 0, 0.15);
   border-radius: 3px;
 }

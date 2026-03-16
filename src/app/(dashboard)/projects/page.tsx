@@ -197,7 +197,7 @@ export default function ProjectsPage() {
             {!isCollapsed && (
               <table className="w-full text-sm">
                 <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border)', background: '#FAFAFA' }}>
+                  <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.45)' }}>
                     {['プロジェクト名', '顧客名', 'ステータス', '確度', '金額（税抜）', '税額', '期', '請求月', '入金月', ''].map(h => (
                       <th key={h} className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>{h}</th>
                     ))}

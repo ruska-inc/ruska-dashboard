@@ -139,7 +139,7 @@ export default function ExcelImportModal({ open, onClose, onImported }: Props) {
             <div className="rounded-lg border overflow-auto max-h-52" style={{ borderColor: 'var(--border)' }}>
               <table className="w-full text-xs">
                 <thead>
-                  <tr style={{ background: '#FAFAFA', borderBottom: '1px solid var(--border)' }}>
+                  <tr style={{ background: 'rgba(255,255,255,0.45)', borderBottom: '1px solid var(--border)' }}>
                     {['プロジェクト名', '顧客名', 'ステータス', '確度', '金額'].map(h => (
                       <th key={h} className="text-left px-3 py-2 font-medium" style={{ color: 'var(--muted)' }}>{h}</th>
                     ))}

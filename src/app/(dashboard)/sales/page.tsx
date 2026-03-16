@@ -139,7 +139,7 @@ export default function SalesPage() {
             </div>
             <table className="w-full text-sm">
               <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)', background: '#FAFAFA' }}>
+                <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.45)' }}>
                   {['プロジェクト名', '顧客名', '入金日', '入金額', '入金月', ''].map(h => (
                     <th key={h} className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>{h}</th>
                   ))}
@@ -181,13 +181,13 @@ export default function SalesPage() {
         <Card className="p-0 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
             <h3 className="text-sm font-semibold">請求予定・未入金案件</h3>
-            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: '#D97706' }}>
+            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(254,243,199,0.70)', color: '#D97706' }}>
               {unpaidProjects.length}件
             </span>
           </div>
           <table className="w-full text-sm">
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)', background: '#FAFAFA' }}>
+              <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.45)' }}>
                 {['プロジェクト名', '顧客名', 'ステータス', '金額（税抜）', '請求月', '支払月'].map(h => (
                   <th key={h} className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>{h}</th>
                 ))}

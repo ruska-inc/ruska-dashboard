@@ -233,7 +233,7 @@ export default function SettingsPage() {
         <div className="space-y-2">
           {profiles.map(user => (
             <div key={user.id} className="flex items-center justify-between p-3 rounded-lg"
-              style={{ background: '#FAFAFA', border: '1px solid var(--border)' }}>
+              style={{ background: 'rgba(255,255,255,0.45)', border: '1px solid var(--border)' }}>
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
                   style={{ background: 'var(--accent)' }}>
@@ -283,7 +283,7 @@ export default function SettingsPage() {
         <div className="space-y-2">
           {periods.map(period => (
             <div key={period.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg"
-              style={{ background: '#FAFAFA', border: '1px solid var(--border)' }}>
+              style={{ background: 'rgba(255,255,255,0.45)', border: '1px solid var(--border)' }}>
               <span className="text-sm font-medium">{period.name}</span>
               <button onClick={() => handleDeletePeriod(period.id)}
                 className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-red-50"
@@ -325,7 +325,7 @@ export default function SettingsPage() {
         <div className="space-y-2">
           {clients.map(client => (
             <div key={client.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg"
-              style={{ background: '#FAFAFA', border: '1px solid var(--border)' }}>
+              style={{ background: 'rgba(255,255,255,0.45)', border: '1px solid var(--border)' }}>
               {editingClient?.id === client.id ? (
                 <form onSubmit={handleUpdateClient} className="flex items-center gap-2 flex-1">
                   <input
@@ -377,7 +377,7 @@ export default function SettingsPage() {
             { key: 'contractors', label: '業務委託案件', desc: '全委託案件をExcelでダウンロード' },
           ].map(item => (
             <div key={item.key} className="flex items-center justify-between p-3 rounded-lg"
-              style={{ background: '#FAFAFA', border: '1px solid var(--border)' }}>
+              style={{ background: 'rgba(255,255,255,0.45)', border: '1px solid var(--border)' }}>
               <div>
                 <p className="text-sm font-medium">{item.label}</p>
                 <p className="text-xs" style={{ color: 'var(--muted)' }}>{item.desc}</p>
@@ -403,7 +403,7 @@ export default function SettingsPage() {
         <div className="space-y-2">
           {(Object.keys(roleLabels) as UserRole[]).map(role => (
             <div key={role} className="flex items-start gap-3 p-3 rounded-lg"
-              style={{ background: '#FAFAFA', border: '1px solid var(--border)' }}>
+              style={{ background: 'rgba(255,255,255,0.45)', border: '1px solid var(--border)' }}>
               <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 mt-0.5"
                 style={{ background: 'var(--accent-light)' }}>
                 <User size={13} style={{ color: 'var(--accent)' }} />

@@ -50,64 +50,89 @@ export default function Sidebar() {
     router.refresh()
   }
 
-  const initials = profile?.name
-    ? profile.name.slice(0, 1)
-    : '?'
+  const initials = profile?.name ? profile.name.slice(0, 1) : '?'
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-60 flex flex-col" style={{ background: 'var(--sidebar)' }}>
+    <aside
+      className="fixed left-0 top-0 h-full w-60 flex flex-col"
+      style={{
+        background: 'var(--sidebar)',
+        backdropFilter: 'blur(40px) saturate(200%)',
+        WebkitBackdropFilter: 'blur(40px) saturate(200%)',
+        borderRight: '1px solid var(--sidebar-border)',
+        boxShadow: '4px 0 32px rgba(0,0,0,0.18)',
+      }}
+    >
       {/* ロゴ */}
-      <div className="flex items-center gap-2 px-6 py-5 border-b border-white/10">
-        <div className="w-7 h-7 rounded-md flex items-center justify-center" style={{ background: 'var(--accent)' }}>
+      <div className="flex items-center gap-2 px-6 py-5" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <div
+          className="w-7 h-7 rounded-lg flex items-center justify-center"
+          style={{
+            background: 'linear-gradient(135deg, #7A9E7E, #5a8060)',
+            boxShadow: '0 2px 8px rgba(122,158,126,0.5)',
+          }}
+        >
           <span className="text-white font-bold text-sm">R</span>
         </div>
         <div>
           <p className="text-white font-semibold text-sm leading-tight">Ruska inc.</p>
-          <p className="text-xs" style={{ color: 'var(--sidebar-muted)' }}>管理ダッシュボード</p>
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.40)' }}>管理ダッシュボード</p>
         </div>
       </div>
 
       {/* ナビゲーション */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 px-3 py-4 space-y-0.5">
         {navItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
           const Icon = item.icon
           return (
             <Link key={item.href} href={item.href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
-                isActive ? 'text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'
+                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all',
+                isActive ? 'text-white' : 'text-gray-400 hover:text-white'
               )}
-              style={isActive ? { background: 'var(--accent)', color: 'white' } : {}}
+              style={isActive ? {
+                background: 'rgba(122, 158, 126, 0.28)',
+                backdropFilter: 'blur(12px)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10)',
+                color: 'white',
+              } : {
+                background: 'transparent',
+              }}
             >
-              <Icon size={18} className="shrink-0" />
+              <Icon size={17} className="shrink-0" />
               <span className="flex-1">{item.label}</span>
-              {isActive && <ChevronRight size={14} className="opacity-60" />}
+              {isActive && <ChevronRight size={13} className="opacity-50" />}
             </Link>
           )
         })}
       </nav>
 
-      {/* フッター：ユーザー情報 */}
-      <div className="px-4 py-4 border-t border-white/10 space-y-2">
+      {/* フッター */}
+      <div className="px-4 py-4 space-y-2" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
         <div className="flex items-center gap-3 px-2">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
-            style={{ background: 'var(--accent)' }}>
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+            style={{
+              background: 'linear-gradient(135deg, #7A9E7E, #5a8060)',
+              boxShadow: '0 2px 6px rgba(122,158,126,0.4)',
+            }}
+          >
             {initials}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white text-sm font-medium truncate">
               {profile?.name ?? '読み込み中...'}
             </p>
-            <p className="text-xs truncate" style={{ color: 'var(--sidebar-muted)' }}>
+            <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.40)' }}>
               {profile ? roleLabels[profile.role] ?? profile.role : ''}
             </p>
           </div>
         </div>
         <button onClick={handleLogout}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors hover:bg-white/5"
-          style={{ color: 'var(--sidebar-muted)' }}>
-          <LogOut size={15} />
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-all hover:bg-white/8"
+          style={{ color: 'rgba(255,255,255,0.45)' }}>
+          <LogOut size={14} />
           <span>ログアウト</span>
         </button>
       </div>

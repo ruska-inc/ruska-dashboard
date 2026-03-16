@@ -190,7 +190,7 @@ export default function ContractorsPage() {
             </div>
             <table className="w-full text-sm">
               <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)', background: '#FAFAFA' }}>
+                <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.45)' }}>
                   {['案件名', '委託先', '費用（税抜）', '費用（税込）', '請求月', '支払月', '振込状況', ''].map(h => (
                     <th key={h} className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>{h}</th>
                   ))}
@@ -243,7 +243,7 @@ export default function ContractorsPage() {
           </div>
           <table className="w-full text-sm">
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)', background: '#FAFAFA' }}>
+              <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.45)' }}>
                 {['会社名', '担当者', 'スキル', 'メール', '電話', '適格番号', '案件数', ''].map(h => (
                   <th key={h} className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>{h}</th>
                 ))}

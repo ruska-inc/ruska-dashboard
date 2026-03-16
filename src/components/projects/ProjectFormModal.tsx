@@ -206,7 +206,7 @@ export default function ProjectFormModal({ open, onClose, onSave, initial }: Pro
               value={form.tax_amount || ''}
               readOnly
               className={inputClass}
-              style={{ ...inputStyle, background: '#F9FAFB', color: 'var(--muted)' }}
+              style={{ ...inputStyle, background: 'rgba(255,255,255,0.35)', color: 'var(--muted)' }}
             />
           </div>
 

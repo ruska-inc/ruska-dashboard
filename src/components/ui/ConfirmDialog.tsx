@@ -20,7 +20,7 @@ export default function ConfirmDialog({ open, title, message, onConfirm, onCance
         style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
         <div className="flex items-start gap-3 mb-4">
           <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-            style={{ background: '#FEF2F2' }}>
+            style={{ background: 'rgba(254,226,226,0.70)' }}>
             <AlertTriangle size={16} style={{ color: '#EF4444' }} />
           </div>
           <div>

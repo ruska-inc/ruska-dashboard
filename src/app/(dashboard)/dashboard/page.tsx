@@ -175,7 +175,7 @@ export default function DashboardPage() {
                 {formatCurrency(taxTotal)}
               </p>
             </div>
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: '#F9FAFB' }}>
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.35)' }}>
               <Receipt size={20} style={{ color: 'var(--muted)' }} />
             </div>
           </div>
@@ -253,7 +253,7 @@ export default function DashboardPage() {
         <div className="space-y-2">
           {troubleProjects.map(p => (
             <div key={p.id} className="flex items-center justify-between py-2 px-3 rounded-lg"
-              style={{ background: '#FEF2F2' }}>
+              style={{ background: 'rgba(254,226,226,0.70)' }}>
               <div>
                 <p className="text-sm font-medium">{p.name}</p>
                 <p className="text-xs" style={{ color: 'var(--muted)' }}>{p.client_name}</p>

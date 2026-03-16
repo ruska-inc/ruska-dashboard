@@ -124,7 +124,7 @@ export default function AssignmentFormModal({ open, onClose, onSave, contractors
               value={form.amount_incl_tax || ''}
               readOnly
               className={inputClass}
-              style={{ ...inputStyle, background: '#F9FAFB', color: 'var(--muted)' }}
+              style={{ ...inputStyle, background: 'rgba(255,255,255,0.35)', color: 'var(--muted)' }}
             />
           </div>
 

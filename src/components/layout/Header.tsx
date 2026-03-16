@@ -19,25 +19,26 @@ export default function Header() {
 
   return (
     <header
-      className="fixed top-0 right-0 h-14 flex items-center justify-between px-6 border-b z-10"
-      style={{ left: '240px', background: 'var(--card)', borderColor: 'var(--border)' }}
+      className="fixed top-0 right-0 h-14 flex items-center justify-between px-6 z-10"
+      style={{
+        left: '240px',
+        background: 'rgba(255, 255, 255, 0.60)',
+        backdropFilter: 'blur(24px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.65)',
+        boxShadow: '0 1px 0 rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04)',
+      }}
     >
       <h1 className="text-base font-semibold" style={{ color: 'var(--foreground)' }}>
         {title}
       </h1>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <button
-          className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-gray-100"
+          className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:bg-black/6"
           style={{ color: 'var(--muted)' }}
         >
-          <Bell size={16} />
+          <Bell size={15} />
         </button>
-        <div
-          className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
-          style={{ background: 'var(--accent)' }}
-        >
-          管
-        </div>
       </div>
     </header>
   )

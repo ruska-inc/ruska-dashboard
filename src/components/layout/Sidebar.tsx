@@ -76,33 +76,38 @@ export default function Sidebar() {
         </div>
         <div>
           <p className="text-white font-semibold text-sm leading-tight">Ruska inc.</p>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.40)' }}>管理ダッシュボード</p>
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.52)' }}>管理ダッシュボード</p>
         </div>
       </div>
 
       {/* ナビゲーション */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
+      <nav className="flex-1 px-3 py-4 space-y-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
           const Icon = item.icon
           return (
             <Link key={item.href} href={item.href}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all',
-                isActive ? 'text-white' : 'text-gray-400 hover:text-white'
-              )}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group"
               style={isActive ? {
-                background: 'rgba(99, 102, 241, 0.28)',
-                backdropFilter: 'blur(12px)',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10)',
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.55), rgba(139,92,246,0.40))',
+                backdropFilter: 'blur(16px)',
+                boxShadow: '0 2px 12px rgba(99,102,241,0.30), inset 0 1px 0 rgba(255,255,255,0.22)',
+                border: '1px solid rgba(255,255,255,0.18)',
                 color: 'white',
               } : {
-                background: 'transparent',
+                color: 'rgba(255,255,255,0.62)',
+                border: '1px solid transparent',
               }}
             >
-              <Icon size={17} className="shrink-0" />
-              <span className="flex-1">{item.label}</span>
-              {isActive && <ChevronRight size={13} className="opacity-50" />}
+              <Icon
+                size={17}
+                className="shrink-0 transition-all duration-150"
+                style={{ color: isActive ? 'white' : 'rgba(255,255,255,0.50)' }}
+              />
+              <span className="flex-1" style={{ letterSpacing: '0.01em' }}>{item.label}</span>
+              {isActive && (
+                <ChevronRight size={13} style={{ color: 'rgba(255,255,255,0.55)' }} />
+              )}
             </Link>
           )
         })}
@@ -124,14 +129,14 @@ export default function Sidebar() {
             <p className="text-white text-sm font-medium truncate">
               {profile?.name ?? '読み込み中...'}
             </p>
-            <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.40)' }}>
+            <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.52)' }}>
               {profile ? roleLabels[profile.role] ?? profile.role : ''}
             </p>
           </div>
         </div>
         <button onClick={handleLogout}
           className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-all hover:bg-white/8"
-          style={{ color: 'rgba(255,255,255,0.45)' }}>
+          style={{ color: 'rgba(255,255,255,0.55)' }}>
           <LogOut size={14} />
           <span>ログアウト</span>
         </button>

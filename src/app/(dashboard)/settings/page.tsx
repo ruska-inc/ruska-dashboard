@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { UserRole } from '@/lib/types'
-import { Shield, User, Plus, Download, Mail, Trash2, CalendarDays, Link2, RefreshCw, CheckCircle, XCircle } from 'lucide-react'
+import { Shield, User, Plus, Download, Mail, Trash2, CalendarDays } from 'lucide-react'
 import { getAllProfiles, updateProfileRole, getPeriods, createPeriod, deletePeriod } from '@/lib/supabase/queries'
 import { createClient } from '@/lib/supabase/client'
 import { PeriodSetting } from '@/lib/types'
@@ -39,50 +39,10 @@ export default function SettingsPage() {
   const [inviteMsg, setInviteMsg] = useState('')
   const [showInviteForm, setShowInviteForm] = useState(false)
 
-  // MoneyForward
-  const [mfStatus, setMfStatus] = useState<{ connected: boolean; accountCount?: number; error?: string } | null>(null)
-  const [mfAccounts, setMfAccounts] = useState<any[]>([])
-  const [mfChecking, setMfChecking] = useState(false)
-  const [mfSyncing, setMfSyncing] = useState(false)
-  const [mfSyncResult, setMfSyncResult] = useState<string>('')
-
   useEffect(() => {
     getAllProfiles().then(setProfiles).catch(() => {})
     getPeriods().then(setPeriods).catch(() => {})
   }, [])
-
-  const handleMfCheck = async () => {
-    setMfChecking(true)
-    setMfSyncResult('')
-    try {
-      const [statusRes, accountsRes] = await Promise.all([
-        fetch('/api/moneyforward/status'),
-        fetch('/api/moneyforward/accounts'),
-      ])
-      const status = await statusRes.json()
-      const accountData = await accountsRes.json()
-      setMfStatus(status)
-      setMfAccounts(accountData.accounts ?? [])
-    } finally {
-      setMfChecking(false)
-    }
-  }
-
-  const handleMfSync = async () => {
-    setMfSyncing(true)
-    setMfSyncResult('')
-    try {
-      const res = await fetch('/api/moneyforward/sync', { method: 'POST' })
-      const data = await res.json()
-      if (data.error) {
-        setMfSyncResult(`エラー: ${data.error}`)
-      } else {
-        setMfSyncResult(`✓ ${data.inserted}件の入金データを同期しました`)
-      }
-    } finally {
-      setMfSyncing(false)
-    }
-  }
 
   const handleAddPeriod = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -304,81 +264,6 @@ export default function SettingsPage() {
             <p className="text-xs text-center py-4" style={{ color: 'var(--muted)' }}>期が登録されていません</p>
           )}
         </div>
-      </Card>
-
-      {/* MoneyForward連携 */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Link2 size={16} style={{ color: 'var(--accent)' }} />
-            <CardTitle>MoneyForward 連携</CardTitle>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={handleMfCheck} disabled={mfChecking}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border hover:bg-gray-50 disabled:opacity-50"
-              style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>
-              <RefreshCw size={12} className={mfChecking ? 'animate-spin' : ''} />
-              {mfChecking ? '確認中...' : '接続確認'}
-            </button>
-            {mfStatus?.connected && (
-              <button onClick={handleMfSync} disabled={mfSyncing}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-50"
-                style={{ background: 'var(--primary)' }}>
-                <RefreshCw size={12} className={mfSyncing ? 'animate-spin' : ''} />
-                {mfSyncing ? '同期中...' : '入金データ同期'}
-              </button>
-            )}
-          </div>
-        </CardHeader>
-
-        {mfStatus && (
-          <div className="mb-3 flex items-center gap-2 text-xs px-3 py-2 rounded-lg"
-            style={{ background: mfStatus.connected ? '#F0FDF4' : '#FEF2F2' }}>
-            {mfStatus.connected
-              ? <><CheckCircle size={13} color="#16A34A" /><span style={{ color: '#16A34A' }}>接続成功 — {mfStatus.accountCount}件の口座が連携中</span></>
-              : <><XCircle size={13} color="#EF4444" /><span style={{ color: '#EF4444' }}>接続失敗: {mfStatus.error}</span></>
-            }
-          </div>
-        )}
-
-        {mfSyncResult && (
-          <div className="mb-3 text-xs px-3 py-2 rounded-lg"
-            style={{ background: mfSyncResult.startsWith('✓') ? '#F0FDF4' : '#FEF2F2',
-              color: mfSyncResult.startsWith('✓') ? '#16A34A' : '#EF4444' }}>
-            {mfSyncResult}
-          </div>
-        )}
-
-        {mfAccounts.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-xs font-medium mb-2" style={{ color: 'var(--muted)' }}>連携口座</p>
-            {mfAccounts.map((acc: any) => (
-              <div key={acc.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg"
-                style={{ background: '#FAFAFA', border: '1px solid var(--border)' }}>
-                <div>
-                  <p className="text-sm font-medium">{acc.service?.name ?? acc.name}</p>
-                  <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                    {acc.last_succeeded_at ? `最終更新: ${acc.last_succeeded_at.slice(0, 10)}` : '未取得'}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold">
-                    ¥{(acc.balance ?? acc.asset ?? 0).toLocaleString()}
-                  </p>
-                  {acc.error_msg && (
-                    <p className="text-xs" style={{ color: '#EF4444' }}>{acc.error_msg}</p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {!mfStatus && (
-          <p className="text-xs text-center py-4" style={{ color: 'var(--muted)' }}>
-            「接続確認」ボタンで MoneyForward との連携状態を確認できます
-          </p>
-        )}
       </Card>
 
       {/* データエクスポート */}

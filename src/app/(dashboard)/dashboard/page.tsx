@@ -9,7 +9,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell,
 } from 'recharts'
-import { TrendingUp, TrendingDown, Receipt, AlertCircle, Building2, RefreshCw } from 'lucide-react'
+import { TrendingUp, TrendingDown, Receipt, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { usePeriods } from '@/lib/hooks/usePeriods'
 
@@ -47,10 +47,6 @@ export default function DashboardPage() {
   const [selectedPeriod, setSelectedPeriod] = useState('全期')
   const { periods } = usePeriods()
 
-  const [bankAccounts, setBankAccounts] = useState<any[]>([])
-  const [bankLoading, setBankLoading] = useState(false)
-  const [bankTotal, setBankTotal] = useState<number | null>(null)
-
   useEffect(() => {
     if (periods.length > 0) setSelectedPeriod(periods[0].name)
   }, [periods])
@@ -64,20 +60,6 @@ export default function DashboardPage() {
       })
       .finally(() => setLoading(false))
   }, [])
-
-  const fetchBankAccounts = async () => {
-    setBankLoading(true)
-    try {
-      const res = await fetch('/api/moneyforward/accounts')
-      const data = await res.json()
-      if (data.accounts) {
-        setBankAccounts(data.accounts)
-        setBankTotal(data.accounts.reduce((s: number, a: any) => s + (a.balance ?? a.asset ?? 0), 0))
-      }
-    } finally {
-      setBankLoading(false)
-    }
-  }
 
   const filteredProjects = useMemo(() =>
     selectedPeriod === '全期' ? projects : projects.filter(p => p.period === selectedPeriod),
@@ -258,48 +240,6 @@ export default function DashboardPage() {
           </ResponsiveContainer>
         </Card>
       </div>
-
-      {/* 銀行口座残高 */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Building2 size={15} style={{ color: 'var(--accent)' }} />
-            <CardTitle>銀行口座残高</CardTitle>
-            {bankTotal !== null && (
-              <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>
-                合計 ¥{bankTotal.toLocaleString()}
-              </span>
-            )}
-          </div>
-          <button onClick={fetchBankAccounts} disabled={bankLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border hover:bg-gray-50 disabled:opacity-50"
-            style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>
-            <RefreshCw size={12} className={bankLoading ? 'animate-spin' : ''} />
-            {bankLoading ? '取得中...' : '残高を取得'}
-          </button>
-        </CardHeader>
-
-        {bankAccounts.length > 0 ? (
-          <div className="grid grid-cols-2 gap-3">
-            {bankAccounts.map((acc: any) => (
-              <div key={acc.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg"
-                style={{ background: '#FAFAFA', border: '1px solid var(--border)' }}>
-                <div>
-                  <p className="text-sm font-medium">{acc.service?.name ?? acc.name}</p>
-                  <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                    {acc.last_succeeded_at ? acc.last_succeeded_at.slice(0, 10) : '未取得'}
-                  </p>
-                </div>
-                <p className="text-sm font-bold">¥{(acc.balance ?? acc.asset ?? 0).toLocaleString()}</p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-center py-4" style={{ color: 'var(--muted)' }}>
-            「残高を取得」ボタンを押すと MoneyForward から口座残高を取得します
-          </p>
-        )}
-      </Card>
 
       {/* 要注意案件 */}
       <Card>

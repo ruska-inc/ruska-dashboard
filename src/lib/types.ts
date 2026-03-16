@@ -9,6 +9,13 @@ export interface User {
   created_at: string
 }
 
+// 顧客マスタ
+export interface Client {
+  id: string
+  name: string
+  created_at: string
+}
+
 // プロジェクトステータス
 export type ProjectStatus =
   | '見積もり中'

@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import Modal from '@/components/ui/Modal'
-import { Project, ProjectStatus, ProjectProbability, Period } from '@/lib/types'
+import { Project, ProjectStatus, ProjectProbability, Period, Client } from '@/lib/types'
 import { usePeriods } from '@/lib/hooks/usePeriods'
+import { getClients, createClientRecord } from '@/lib/supabase/queries'
 
 const STATUSES: ProjectStatus[] = [
   '見積もり中', '進行中', '外注', '請求済み', '着金済み', '立て替え', '完了済', '失注'
@@ -31,6 +32,27 @@ const labelStyle = { color: 'var(--muted)' }
 export default function ProjectFormModal({ open, onClose, onSave, initial }: Props) {
   const { periods: periodSettings } = usePeriods()
   const PERIODS = periodSettings.map(p => p.name)
+  const [clients, setClients] = useState<Client[]>([])
+  const [newClientName, setNewClientName] = useState('')
+  const [addingClient, setAddingClient] = useState(false)
+
+  useEffect(() => {
+    getClients().then(setClients).catch(() => {})
+  }, [])
+
+  const handleAddClient = async () => {
+    const name = newClientName.trim()
+    if (!name) return
+    setAddingClient(true)
+    try {
+      const created = await createClientRecord(name)
+      setClients(prev => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)))
+      setForm(f => ({ ...f, client_name: created.name }))
+      setNewClientName('')
+    } finally {
+      setAddingClient(false)
+    }
+  }
 
   const [form, setForm] = useState({
     name: initial?.name ?? '',
@@ -104,14 +126,37 @@ export default function ProjectFormModal({ open, onClose, onSave, initial }: Pro
           {/* 顧客名 */}
           <div className="col-span-2">
             <label className={labelClass} style={labelStyle}>顧客名 *</label>
-            <input
-              required
-              value={form.client_name}
-              onChange={e => setForm(f => ({ ...f, client_name: e.target.value }))}
-              className={inputClass}
-              style={inputStyle}
-              placeholder="例: 株式会社○○"
-            />
+            <div className="flex gap-2">
+              <select
+                required
+                value={form.client_name}
+                onChange={e => setForm(f => ({ ...f, client_name: e.target.value }))}
+                className={inputClass}
+                style={inputStyle}
+              >
+                <option value="">顧客を選択...</option>
+                {clients.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+              </select>
+            </div>
+            <div className="flex gap-2 mt-2">
+              <input
+                value={newClientName}
+                onChange={e => setNewClientName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddClient())}
+                className={inputClass}
+                style={{ ...inputStyle, fontSize: '0.75rem' }}
+                placeholder="新しい顧客名を追加..."
+              />
+              <button
+                type="button"
+                onClick={handleAddClient}
+                disabled={addingClient || !newClientName.trim()}
+                className="px-3 py-2 text-xs rounded-lg font-medium text-white disabled:opacity-50 shrink-0"
+                style={{ background: 'var(--accent)' }}
+              >
+                追加
+              </button>
+            </div>
           </div>
 
           {/* ステータス */}

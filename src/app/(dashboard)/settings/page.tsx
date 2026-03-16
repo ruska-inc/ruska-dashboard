@@ -2,11 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
-import { UserRole } from '@/lib/types'
-import { Shield, User, Plus, Download, Mail, Trash2, CalendarDays } from 'lucide-react'
-import { getAllProfiles, updateProfileRole, getPeriods, createPeriod, deletePeriod } from '@/lib/supabase/queries'
+import { UserRole, PeriodSetting, Client } from '@/lib/types'
+import { Shield, User, Plus, Download, Mail, Trash2, CalendarDays, Building2, Pencil } from 'lucide-react'
+import { getAllProfiles, updateProfileRole, getPeriods, createPeriod, deletePeriod, getClients, createClientRecord, updateClientRecord, deleteClientRecord } from '@/lib/supabase/queries'
 import { createClient } from '@/lib/supabase/client'
-import { PeriodSetting } from '@/lib/types'
 
 const roleLabels: Record<UserRole, string> = {
   admin: '管理者',
@@ -32,6 +31,12 @@ export default function SettingsPage() {
   const [periods, setPeriods] = useState<PeriodSetting[]>([])
   const [newPeriodName, setNewPeriodName] = useState('')
   const [addingPeriod, setAddingPeriod] = useState(false)
+
+  const [clients, setClients] = useState<Client[]>([])
+  const [newClientName, setNewClientName] = useState('')
+  const [addingClient, setAddingClient] = useState(false)
+  const [editingClient, setEditingClient] = useState<Client | null>(null)
+  const [editClientName, setEditClientName] = useState('')
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteName, setInviteName] = useState('')
   const [inviteRole, setInviteRole] = useState<UserRole>('internal')
@@ -42,7 +47,34 @@ export default function SettingsPage() {
   useEffect(() => {
     getAllProfiles().then(setProfiles).catch(() => {})
     getPeriods().then(setPeriods).catch(() => {})
+    getClients().then(setClients).catch(() => {})
   }, [])
+
+  const handleAddClient = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newClientName.trim()) return
+    setAddingClient(true)
+    try {
+      const created = await createClientRecord(newClientName.trim())
+      setClients(prev => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)))
+      setNewClientName('')
+    } finally {
+      setAddingClient(false)
+    }
+  }
+
+  const handleUpdateClient = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingClient || !editClientName.trim()) return
+    const updated = await updateClientRecord(editingClient.id, editClientName.trim())
+    setClients(prev => prev.map(c => c.id === updated.id ? updated : c).sort((a, b) => a.name.localeCompare(b.name)))
+    setEditingClient(null)
+  }
+
+  const handleDeleteClient = async (id: string) => {
+    await deleteClientRecord(id)
+    setClients(prev => prev.filter(c => c.id !== id))
+  }
 
   const handleAddPeriod = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -262,6 +294,70 @@ export default function SettingsPage() {
           ))}
           {periods.length === 0 && (
             <p className="text-xs text-center py-4" style={{ color: 'var(--muted)' }}>期が登録されていません</p>
+          )}
+        </div>
+      </Card>
+
+      {/* 顧客マスタ */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Building2 size={16} style={{ color: 'var(--accent)' }} />
+            <CardTitle>顧客マスタ</CardTitle>
+          </div>
+        </CardHeader>
+
+        <form onSubmit={handleAddClient} className="flex gap-2 mb-4">
+          <input
+            value={newClientName}
+            onChange={e => setNewClientName(e.target.value)}
+            placeholder="例: 株式会社○○"
+            className="flex-1 px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2"
+            style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+          />
+          <button type="submit" disabled={addingClient || !newClientName.trim()}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-white disabled:opacity-50"
+            style={{ background: 'var(--primary)' }}>
+            <Plus size={13} />追加
+          </button>
+        </form>
+
+        <div className="space-y-2">
+          {clients.map(client => (
+            <div key={client.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg"
+              style={{ background: '#FAFAFA', border: '1px solid var(--border)' }}>
+              {editingClient?.id === client.id ? (
+                <form onSubmit={handleUpdateClient} className="flex items-center gap-2 flex-1">
+                  <input
+                    autoFocus
+                    value={editClientName}
+                    onChange={e => setEditClientName(e.target.value)}
+                    className="flex-1 px-2 py-1 text-sm rounded border outline-none focus:ring-2"
+                    style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                  />
+                  <button type="submit" className="px-2 py-1 text-xs rounded font-medium text-white"
+                    style={{ background: 'var(--primary)' }}>保存</button>
+                  <button type="button" onClick={() => setEditingClient(null)}
+                    className="px-2 py-1 text-xs rounded border"
+                    style={{ borderColor: 'var(--border)', color: 'var(--muted)' }}>取消</button>
+                </form>
+              ) : (
+                <>
+                  <span className="text-sm font-medium">{client.name}</span>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => { setEditingClient(client); setEditClientName(client.name) }}
+                      className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-gray-100"
+                      style={{ color: 'var(--muted)' }}><Pencil size={13} /></button>
+                    <button onClick={() => handleDeleteClient(client.id)}
+                      className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-red-50"
+                      style={{ color: '#EF4444' }}><Trash2 size={13} /></button>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+          {clients.length === 0 && (
+            <p className="text-xs text-center py-4" style={{ color: 'var(--muted)' }}>顧客が登録されていません</p>
           )}
         </div>
       </Card>

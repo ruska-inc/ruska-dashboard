@@ -1,5 +1,37 @@
 import { createClient } from './client'
-import { Project, PaymentRecord, Contractor, ContractorAssignment, UserRole, PeriodSetting } from '@/lib/types'
+import { Project, PaymentRecord, Contractor, ContractorAssignment, UserRole, PeriodSetting, Client } from '@/lib/types'
+
+// =============================================
+// 顧客マスタ
+// =============================================
+
+export async function getClients() {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('clients').select('*').order('name')
+  if (error) throw error
+  return data as Client[]
+}
+
+export async function createClientRecord(name: string) {
+  const supabase = createClient()
+  const { data, error } = await supabase.from('clients').insert({ name }).select().single()
+  if (error) throw error
+  return data as Client
+}
+
+export async function updateClientRecord(id: string, name: string) {
+  const supabase = createClient()
+  const { data, error } = await supabase.from('clients').update({ name }).eq('id', id).select().single()
+  if (error) throw error
+  return data as Client
+}
+
+export async function deleteClientRecord(id: string) {
+  const supabase = createClient()
+  const { error } = await supabase.from('clients').delete().eq('id', id)
+  if (error) throw error
+}
 
 // =============================================
 // プロジェクト

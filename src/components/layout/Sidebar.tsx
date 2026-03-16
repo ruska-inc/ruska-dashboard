@@ -68,8 +68,8 @@ export default function Sidebar() {
         <div
           className="w-7 h-7 rounded-lg flex items-center justify-center"
           style={{
-            background: 'linear-gradient(135deg, #7A9E7E, #5a8060)',
-            boxShadow: '0 2px 8px rgba(122,158,126,0.5)',
+            background: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
+            boxShadow: '0 2px 8px rgba(99,102,241,0.5)',
           }}
         >
           <span className="text-white font-bold text-sm">R</span>
@@ -92,7 +92,7 @@ export default function Sidebar() {
                 isActive ? 'text-white' : 'text-gray-400 hover:text-white'
               )}
               style={isActive ? {
-                background: 'rgba(122, 158, 126, 0.28)',
+                background: 'rgba(99, 102, 241, 0.28)',
                 backdropFilter: 'blur(12px)',
                 boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10)',
                 color: 'white',
@@ -114,8 +114,8 @@ export default function Sidebar() {
           <div
             className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
             style={{
-              background: 'linear-gradient(135deg, #7A9E7E, #5a8060)',
-              boxShadow: '0 2px 6px rgba(122,158,126,0.4)',
+              background: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
+              boxShadow: '0 2px 6px rgba(99,102,241,0.4)',
             }}
           >
             {initials}

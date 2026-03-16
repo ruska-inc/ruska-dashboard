@@ -13,7 +13,7 @@ import { TrendingUp, TrendingDown, Receipt, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { usePeriods } from '@/lib/hooks/usePeriods'
 
-const probabilityColors = ['#F59E0B', '#F97316', '#3B82F6', '#7A9E7E', '#EF4444', '#9CA3AF']
+const probabilityColors = ['#F59E0B', '#F97316', '#38BDF8', '#6366F1', '#EF4444', '#9CA3AF']
 
 function parseMonth(label: string) {
   const m = label.match(/(\d+)年(\d+)月/)

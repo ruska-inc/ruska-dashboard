@@ -1,22 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --background: #eef1f5;
+  --background: #f0f2ff;
   --foreground: #1A1A1A;
   --card: rgba(255, 255, 255, 0.52);
   --border: rgba(255, 255, 255, 0.78);
   --border-subtle: rgba(0, 0, 0, 0.07);
-  --primary: #1A1A1A;
-  --accent: #7A9E7E;
-  --accent-light: rgba(122, 158, 126, 0.14);
+  --primary: #6366F1;
+  --accent: #6366F1;
+  --accent-light: rgba(99, 102, 241, 0.12);
   --muted: #6B7280;
-  --sidebar: rgba(18, 20, 26, 0.80);
+  --sidebar: rgba(8, 10, 30, 0.84);
   --sidebar-border: rgba(255, 255, 255, 0.10);
   --sidebar-text: #FFFFFF;
   --sidebar-muted: #9CA3AF;
   --danger: #EF4444;
   --warning: #F59E0B;
-  --success: #7A9E7E;
+  --success: #10B981;
 }
 
 @theme inline {
@@ -37,11 +37,12 @@
 
 html {
   background:
-    radial-gradient(ellipse at 12% 55%, rgba(122, 158, 126, 0.22) 0%, transparent 52%),
-    radial-gradient(ellipse at 88% 12%, rgba(140, 170, 255, 0.16) 0%, transparent 50%),
-    radial-gradient(ellipse at 65% 88%, rgba(255, 195, 140, 0.13) 0%, transparent 50%),
-    radial-gradient(ellipse at 42% 32%, rgba(190, 215, 255, 0.10) 0%, transparent 48%),
-    #eaecf2;
+    radial-gradient(ellipse at 10% 60%, rgba(56, 189, 248, 0.26) 0%, transparent 52%),
+    radial-gradient(ellipse at 90% 8%,  rgba(168, 85, 247, 0.22) 0%, transparent 50%),
+    radial-gradient(ellipse at 62% 92%, rgba(99, 102, 241, 0.20) 0%, transparent 52%),
+    radial-gradient(ellipse at 38% 30%, rgba(224, 231, 255, 0.28) 0%, transparent 48%),
+    radial-gradient(ellipse at 75% 55%, rgba(139, 92, 246, 0.12) 0%, transparent 45%),
+    #eef0ff;
   background-attachment: fixed;
   min-height: 100%;
 }
@@ -57,26 +58,16 @@ body {
   box-sizing: border-box;
 }
 
-/* ガラスカード共通 */
 .glass {
   background: var(--card);
   backdrop-filter: blur(28px) saturate(180%);
   -webkit-backdrop-filter: blur(28px) saturate(180%);
   border: 1px solid var(--border);
   box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.06),
+    0 4px 24px rgba(99, 102, 241, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.90);
 }
 
-/* テーブル行の薄いガラス */
-.glass-row {
-  background: rgba(255, 255, 255, 0.36) !important;
-}
-.glass-row-head {
-  background: rgba(255, 255, 255, 0.50) !important;
-}
-
-/* スクロールバー */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -85,6 +76,6 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(99, 102, 241, 0.20);
   border-radius: 3px;
 }

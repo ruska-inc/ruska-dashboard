@@ -26,7 +26,7 @@ export default function Header() {
         backdropFilter: 'blur(24px) saturate(180%)',
         WebkitBackdropFilter: 'blur(24px) saturate(180%)',
         borderBottom: '1px solid rgba(255, 255, 255, 0.65)',
-        boxShadow: '0 1px 0 rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04)',
+        boxShadow: '0 1px 0 rgba(99,102,241,0.08), 0 4px 16px rgba(99,102,241,0.06)',
       }}
     >
       <h1 className="text-base font-semibold" style={{ color: 'var(--foreground)' }}>

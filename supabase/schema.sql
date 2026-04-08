@@ -114,6 +114,21 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
+-- 期（期間設定）
+create table if not exists public.periods (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  sort_order integer not null default 0,
+  created_at timestamptz default now()
+);
+
+-- 顧客マスタ
+create table if not exists public.clients (
+  id uuid default gen_random_uuid() primary key,
+  name text not null unique,
+  created_at timestamptz default now()
+);
+
 -- =============================================
 -- Row Level Security (RLS)
 -- =============================================
@@ -123,6 +138,8 @@ alter table public.projects enable row level security;
 alter table public.payment_records enable row level security;
 alter table public.contractors enable row level security;
 alter table public.contractor_assignments enable row level security;
+alter table public.periods enable row level security;
+alter table public.clients enable row level security;
 
 -- profiles
 drop policy if exists "profiles_select" on public.profiles;
@@ -194,4 +211,34 @@ create policy "assignments_insert" on public.contractor_assignments for insert w
 );
 create policy "assignments_update" on public.contractor_assignments for update using (
   get_my_role() in ('admin', 'management')
+);
+
+-- periods
+drop policy if exists "periods_select" on public.periods;
+drop policy if exists "periods_insert" on public.periods;
+drop policy if exists "periods_delete" on public.periods;
+create policy "periods_select" on public.periods for select using (true);
+create policy "periods_insert" on public.periods for insert with check (
+  get_my_role() in ('admin', 'management')
+);
+create policy "periods_delete" on public.periods for delete using (
+  get_my_role() in ('admin', 'management')
+);
+
+-- clients
+drop policy if exists "clients_select" on public.clients;
+drop policy if exists "clients_insert" on public.clients;
+drop policy if exists "clients_update" on public.clients;
+drop policy if exists "clients_delete" on public.clients;
+create policy "clients_select" on public.clients for select using (
+  get_my_role() in ('admin', 'management', 'accounting', 'internal')
+);
+create policy "clients_insert" on public.clients for insert with check (
+  get_my_role() in ('admin', 'management')
+);
+create policy "clients_update" on public.clients for update using (
+  get_my_role() in ('admin', 'management')
+);
+create policy "clients_delete" on public.clients for delete using (
+  get_my_role() = 'admin'
 );

@@ -50,21 +50,21 @@ const CombinedTooltip = ({ active, payload, label }: any) => {
   if (!data) return null
   return (
     <div
-      className="bg-white border rounded-lg p-3 shadow-lg text-xs"
-      style={{ borderColor: 'var(--border)', maxWidth: 460 }}
+      className="bg-white border rounded-lg p-4 shadow-xl text-sm"
+      style={{ borderColor: 'var(--border)', width: 720, maxWidth: '92vw' }}
     >
-      <p className="font-medium mb-2 text-sm">{label}</p>
-      <div className="grid grid-cols-2 gap-4">
+      <p className="font-semibold mb-3 text-base">{label}</p>
+      <div className="grid grid-cols-2 gap-5">
         <div>
-          <p className="font-semibold mb-1.5" style={{ color: '#3B82F6' }}>
+          <p className="font-semibold mb-2 pb-1.5" style={{ color: '#3B82F6', borderBottom: '1px solid var(--border)' }}>
             請求(税込) {formatCurrency(data.invoice)}
           </p>
-          <div className="space-y-1 max-h-48 overflow-auto pr-1">
+          <div className="space-y-1.5 max-h-56 overflow-auto pr-1">
             {data.invoiceItems.length === 0 && (
               <p style={{ color: 'var(--muted)' }}>—</p>
             )}
             {data.invoiceItems.map((it, i) => (
-              <div key={i} className="flex justify-between gap-2">
+              <div key={i} className="flex justify-between gap-3">
                 <span className="truncate">
                   {it.client && <span style={{ color: 'var(--muted)' }}>{it.client} / </span>}
                   {it.name}
@@ -75,15 +75,15 @@ const CombinedTooltip = ({ active, payload, label }: any) => {
           </div>
         </div>
         <div>
-          <p className="font-semibold mb-1.5" style={{ color: 'var(--accent)' }}>
+          <p className="font-semibold mb-2 pb-1.5" style={{ color: 'var(--accent)', borderBottom: '1px solid var(--border)' }}>
             入金 {formatCurrency(data.payment)}
           </p>
-          <div className="space-y-1 max-h-48 overflow-auto pr-1">
+          <div className="space-y-1.5 max-h-56 overflow-auto pr-1">
             {data.paymentItems.length === 0 && (
               <p style={{ color: 'var(--muted)' }}>—</p>
             )}
             {data.paymentItems.map((it, i) => (
-              <div key={i} className="flex justify-between gap-2">
+              <div key={i} className="flex justify-between gap-3">
                 <span className="truncate">
                   {it.client && <span style={{ color: 'var(--muted)' }}>{it.client} / </span>}
                   {it.name}
@@ -103,15 +103,15 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     const items: ChartItem[] = payload[0].payload?.items ?? []
     return (
       <div
-        className="bg-white border rounded-lg p-3 shadow-lg text-xs"
-        style={{ borderColor: 'var(--border)', maxWidth: 340 }}
+        className="bg-white border rounded-lg p-4 shadow-xl text-sm"
+        style={{ borderColor: 'var(--border)', width: 420, maxWidth: '90vw' }}
       >
-        <p className="font-medium mb-1.5 text-sm">{label}</p>
-        <p className="mb-2 font-semibold" style={{ color: 'var(--accent)' }}>
+        <p className="font-semibold mb-2 text-base">{label}</p>
+        <p className="mb-3 font-semibold" style={{ color: 'var(--accent)' }}>
           合計: {formatCurrency(payload[0].value)}
         </p>
         {items.length > 0 && (
-          <div className="space-y-1 max-h-56 overflow-auto pr-1" style={{ borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+          <div className="space-y-1.5 max-h-64 overflow-auto pr-1" style={{ borderTop: '1px solid var(--border)', paddingTop: 10 }}>
             {items.map((it, i) => (
               <div key={i} className="flex justify-between gap-3">
                 <span className="truncate">

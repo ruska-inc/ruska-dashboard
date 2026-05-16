@@ -300,7 +300,7 @@ export default function DashboardPage() {
 
       {/* グラフ */}
       <div className="grid grid-cols-2 gap-4">
-        <Card className="col-span-2">
+        <Card className="col-span-2 relative z-0 hover:z-50">
           <CardHeader>
             <CardTitle>月ごとの請求 / 入金</CardTitle>
             <span className="text-xs" style={{ color: 'var(--muted)' }}>
@@ -312,7 +312,7 @@ export default function DashboardPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
               <XAxis dataKey="month" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `¥${(v / 10000).toFixed(0)}万`} />
-              <Tooltip content={<CombinedTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
+              <Tooltip content={<CombinedTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)' }} wrapperStyle={{ zIndex: 9999, outline: 'none' }} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Bar dataKey="invoice" name="請求額(税込)" fill="#3B82F6" radius={[4, 4, 0, 0]} />
               <Bar dataKey="payment" name="入金額" fill="var(--accent)" radius={[4, 4, 0, 0]} />
@@ -320,27 +320,27 @@ export default function DashboardPage() {
           </ResponsiveContainer>
         </Card>
 
-        <Card>
+        <Card className="relative z-0 hover:z-50">
           <CardHeader><CardTitle>月ごとの外注費用</CardTitle></CardHeader>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={toChartData(outsourceByMonth)}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
               <XAxis dataKey="month" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `¥${(v / 10000).toFixed(0)}万`} />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip />} wrapperStyle={{ zIndex: 9999, outline: 'none' }} />
               <Bar dataKey="value" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
 
-        <Card>
+        <Card className="relative z-0 hover:z-50">
           <CardHeader><CardTitle>確度別の総額</CardTitle></CardHeader>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={probabilityData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
               <XAxis dataKey="name" tick={{ fontSize: 10 }} />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `¥${(v / 10000).toFixed(0)}万`} />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip />} wrapperStyle={{ zIndex: 9999, outline: 'none' }} />
               <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                 {probabilityData.map((_, index) => (
                   <Cell key={index} fill={probabilityColors[index]} />

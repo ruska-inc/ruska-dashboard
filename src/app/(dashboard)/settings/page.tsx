@@ -6,6 +6,21 @@ import { UserRole, PeriodSetting, Client } from '@/lib/types'
 import { Shield, User, Plus, Download, Mail, Trash2, CalendarDays, Building2, Pencil } from 'lucide-react'
 import { getAllProfiles, updateProfileRole, getPeriods, createPeriod, updatePeriod, deletePeriod, getClients, createClientRecord, updateClientRecord, deleteClientRecord } from '@/lib/supabase/queries'
 import { createClient } from '@/lib/supabase/client'
+import MonthPicker from '@/components/ui/MonthPicker'
+
+// "YYYY-MM" ⇔ "YYYY年M月" の変換(MonthPickerは日本語形式を扱うため)
+const isoToJp = (iso: string | null): string | null => {
+  if (!iso) return null
+  const m = iso.match(/^(\d{4})-(\d{1,2})/)
+  if (!m) return null
+  return `${m[1]}年${parseInt(m[2], 10)}月`
+}
+const jpToIso = (jp: string | null): string | null => {
+  if (!jp) return null
+  const m = jp.match(/(\d+)年(\d+)月/)
+  if (!m) return null
+  return `${m[1]}-${m[2].padStart(2, '0')}`
+}
 
 const roleLabels: Record<UserRole, string> = {
   admin: '管理者',
@@ -94,9 +109,9 @@ export default function SettingsPage() {
     setPeriods(prev => prev.filter(p => p.id !== id))
   }
 
-  const handleUpdatePeriodStart = async (id: string, value: string) => {
+  const handleUpdatePeriodStart = async (id: string, value: string | null) => {
     try {
-      const updated = await updatePeriod(id, { start_year_month: value || null })
+      const updated = await updatePeriod(id, { start_year_month: value })
       setPeriods(prev => prev.map(p => p.id === id ? updated : p))
     } catch (err) {
       alert(`期の保存に失敗しました: ${(err as Error).message}\n\nperiodsテーブルのUPDATEポリシーが不足している可能性があります。supabase/add_period_start_month.sqlを実行してください。`)
@@ -294,15 +309,15 @@ export default function SettingsPage() {
             <div key={period.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg"
               style={{ background: 'rgba(255,255,255,0.45)', border: '1px solid var(--border)' }}>
               <span className="text-sm font-medium flex-1">{period.name}</span>
-              <div className="flex items-center gap-1.5">
-                <label className="text-xs" style={{ color: 'var(--muted)' }}>開始月:</label>
-                <input
-                  type="month"
-                  value={period.start_year_month ?? ''}
-                  onChange={e => handleUpdatePeriodStart(period.id, e.target.value)}
-                  className="px-2 py-1 text-xs rounded-md border outline-none"
-                  style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
-                />
+              <div className="flex items-center gap-2">
+                <label className="text-xs whitespace-nowrap" style={{ color: 'var(--muted)' }}>開始月:</label>
+                <div style={{ width: 180 }}>
+                  <MonthPicker
+                    value={isoToJp(period.start_year_month)}
+                    onChange={v => handleUpdatePeriodStart(period.id, jpToIso(v))}
+                    placeholder="未設定"
+                  />
+                </div>
               </div>
               <button onClick={() => handleDeletePeriod(period.id)}
                 className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-red-50"

@@ -6,10 +6,11 @@ import { formatCurrency } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { Plus, Upload, Trash2, Pencil, TrendingUp, TrendingDown, Wallet, FileSpreadsheet, Calendar } from 'lucide-react'
 import { usePeriods } from '@/lib/hooks/usePeriods'
-import type { BankAccount, BankTransaction } from '@/lib/types'
+import type { BankAccount, BankTransaction, Project } from '@/lib/types'
 import {
   getBankAccounts, createBankAccount, updateBankAccount, deleteBankAccount,
   getBankTransactions, createBankTransaction, updateBankTransaction, deleteBankTransaction,
+  getProjects,
 } from '@/lib/supabase/queries'
 import TransactionImportModal from '@/components/cashflow/TransactionImportModal'
 import TransactionFormModal from '@/components/cashflow/TransactionFormModal'
@@ -33,6 +34,7 @@ export default function CashflowPage() {
   const [activeTab, setActiveTab] = useState('月次集計')
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [transactions, setTransactions] = useState<BankTransaction[]>([])
+  const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [accountFilter, setAccountFilter] = useState<string>('all')
   const [monthlyPeriod, setMonthlyPeriod] = useState<string>('all')
@@ -62,8 +64,8 @@ export default function CashflowPage() {
   const [deleteAccount, setDeleteAccount] = useState<BankAccount | undefined>()
 
   useEffect(() => {
-    Promise.all([getBankAccounts(), getBankTransactions()])
-      .then(([a, t]) => { setAccounts(a); setTransactions(t) })
+    Promise.all([getBankAccounts(), getBankTransactions(), getProjects()])
+      .then(([a, t, p]) => { setAccounts(a); setTransactions(t); setProjects(p) })
       .finally(() => setLoading(false))
   }, [])
 
@@ -136,9 +138,30 @@ export default function CashflowPage() {
     label: string
     expense: number
     income: number
+    expectedIncome: number
     netChange: number
     balance: number
   }
+
+  // 「2024年9月」→「2024-09」
+  const jpMonthToIso = (jp: string | null): string | null => {
+    if (!jp) return null
+    const m = jp.match(/(\d+)年(\d+)月/)
+    if (!m) return null
+    return `${m[1]}-${m[2].padStart(2, '0')}`
+  }
+
+  // 確定プロジェクトの payment_month 別の予想収入(税込)を集計
+  const expectedIncomeByMonth = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const p of projects) {
+      if (p.probability !== '確定') continue
+      const ym = jpMonthToIso(p.payment_month)
+      if (!ym) continue
+      map[ym] = (map[ym] ?? 0) + p.amount + p.tax_amount
+    }
+    return map
+  }, [projects])
 
   const allMonthly = useMemo<MonthlyAgg[]>(() => {
     // filteredTransactions (口座フィルター反映済み) を月別に集計
@@ -149,6 +172,10 @@ export default function CashflowPage() {
       map[ym].expense += t.expense
       map[ym].income += t.income
     }
+    // 予想収入のある月で実データが無い場合も含める(将来予測)
+    Object.keys(expectedIncomeByMonth).forEach(ym => {
+      if (!map[ym]) map[ym] = { expense: 0, income: 0 }
+    })
     const sorted = Object.entries(map).sort(([a], [b]) => a.localeCompare(b))
     let balance = 0
     return sorted.map(([ym, { expense, income }]) => {
@@ -161,11 +188,12 @@ export default function CashflowPage() {
         label: `${year}年${month}月`,
         expense,
         income,
+        expectedIncome: expectedIncomeByMonth[ym] ?? 0,
         netChange,
         balance,
       }
     })
-  }, [filteredTransactions])
+  }, [filteredTransactions, expectedIncomeByMonth])
 
   const selectedPeriodStartMissing = useMemo(() => {
     if (monthlyPeriod === 'all') return false
@@ -206,6 +234,7 @@ export default function CashflowPage() {
   const periodTotal = useMemo(() => ({
     expense: monthlyByPeriod.reduce((s, m) => s + m.expense, 0),
     income: monthlyByPeriod.reduce((s, m) => s + m.income, 0),
+    expectedIncome: monthlyByPeriod.reduce((s, m) => s + m.expectedIncome, 0),
     netChange: monthlyByPeriod.reduce((s, m) => s + m.netChange, 0),
   }), [monthlyByPeriod])
 
@@ -500,33 +529,46 @@ export default function CashflowPage() {
                     <th className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>年月</th>
                     <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>費用</th>
                     <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>収入</th>
+                    <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}
+                      title="プロジェクト管理で確定&入金月が一致する案件の税込合計">
+                      予想収入
+                    </th>
                     <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>入出金差引額</th>
                     <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>口座残高</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {monthlyByPeriod.map((m, i) => (
-                    <tr key={m.yearMonth}
-                      style={{ borderBottom: i < monthlyByPeriod.length - 1 ? '1px solid var(--border)' : 'none' }}
-                      className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-2.5 font-medium">{m.label}</td>
-                      <td className="px-4 py-2.5 text-right" style={{ color: m.expense > 0 ? '#EF4444' : 'var(--muted)' }}>
-                        {m.expense > 0 ? formatCurrency(m.expense) : '—'}
-                      </td>
-                      <td className="px-4 py-2.5 text-right" style={{ color: m.income > 0 ? 'var(--accent)' : 'var(--muted)' }}>
-                        {m.income > 0 ? formatCurrency(m.income) : '—'}
-                      </td>
-                      <td className="px-4 py-2.5 text-right font-medium" style={{ color: m.netChange >= 0 ? 'var(--accent)' : '#EF4444' }}>
-                        {m.netChange >= 0 ? '+' : ''}{formatCurrency(m.netChange)}
-                      </td>
-                      <td className="px-4 py-2.5 text-right font-semibold">{formatCurrency(m.balance)}</td>
-                    </tr>
-                  ))}
+                  {monthlyByPeriod.map((m, i) => {
+                    const diff = m.income - m.expectedIncome
+                    const hasExpected = m.expectedIncome > 0
+                    return (
+                      <tr key={m.yearMonth}
+                        style={{ borderBottom: i < monthlyByPeriod.length - 1 ? '1px solid var(--border)' : 'none' }}
+                        className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-2.5 font-medium">{m.label}</td>
+                        <td className="px-4 py-2.5 text-right" style={{ color: m.expense > 0 ? '#EF4444' : 'var(--muted)' }}>
+                          {m.expense > 0 ? formatCurrency(m.expense) : '—'}
+                        </td>
+                        <td className="px-4 py-2.5 text-right" style={{ color: m.income > 0 ? 'var(--accent)' : 'var(--muted)' }}>
+                          {m.income > 0 ? formatCurrency(m.income) : '—'}
+                        </td>
+                        <td className="px-4 py-2.5 text-right" style={{ color: hasExpected ? '#8B5CF6' : 'var(--muted)' }}
+                          title={hasExpected && m.income > 0 ? `実収入との差: ${diff >= 0 ? '+' : ''}${formatCurrency(diff)}` : undefined}>
+                          {hasExpected ? formatCurrency(m.expectedIncome) : '—'}
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-medium" style={{ color: m.netChange >= 0 ? 'var(--accent)' : '#EF4444' }}>
+                          {m.netChange !== 0 ? `${m.netChange >= 0 ? '+' : ''}${formatCurrency(m.netChange)}` : '—'}
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-semibold">{formatCurrency(m.balance)}</td>
+                      </tr>
+                    )
+                  })}
                   {monthlyPeriod !== 'all' && (
                     <tr style={{ borderTop: '2px solid var(--border)', background: 'rgba(245,245,250,0.6)' }}>
                       <td className="px-4 py-3 font-semibold text-xs" style={{ color: 'var(--muted)' }}>{monthlyPeriod} 合計</td>
                       <td className="px-4 py-3 text-right font-semibold" style={{ color: '#EF4444' }}>{formatCurrency(periodTotal.expense)}</td>
                       <td className="px-4 py-3 text-right font-semibold" style={{ color: 'var(--accent)' }}>{formatCurrency(periodTotal.income)}</td>
+                      <td className="px-4 py-3 text-right font-semibold" style={{ color: '#8B5CF6' }}>{formatCurrency(periodTotal.expectedIncome)}</td>
                       <td className="px-4 py-3 text-right font-bold" style={{ color: periodTotal.netChange >= 0 ? 'var(--accent)' : '#EF4444' }}>
                         {periodTotal.netChange >= 0 ? '+' : ''}{formatCurrency(periodTotal.netChange)}
                       </td>

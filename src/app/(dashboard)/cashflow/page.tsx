@@ -180,6 +180,16 @@ export default function CashflowPage() {
     return !!p && !p.start_year_month
   }, [monthlyPeriod, periods])
 
+  // 期と実際の入金タイミングは1ヶ月ずれる(請求月の翌月に入金)
+  const CASHFLOW_MONTH_SHIFT = 1
+  const shiftYearMonth = (ym: string, delta: number): string => {
+    const [y, m] = ym.split('-').map(Number)
+    const total = y * 12 + (m - 1) + delta
+    const newY = Math.floor(total / 12)
+    const newM = (total % 12) + 1
+    return `${newY}-${String(newM).padStart(2, '0')}`
+  }
+
   const monthlyByPeriod = useMemo(() => {
     if (monthlyPeriod === 'all') return allMonthly
     const sortedPeriods = [...periods]
@@ -188,14 +198,17 @@ export default function CashflowPage() {
     const idx = sortedPeriods.findIndex(p => p.name === monthlyPeriod)
     if (idx < 0) return allMonthly  // 開始月未設定: フォールバックで全期表示
     const period = sortedPeriods[idx]
-    const start = period.start_year_month!
-    // 明示的なend_year_monthがあればそれを使う(両端含む)。
-    // なければ次の期の開始月の前まで(片端含む)。
+    // 期境界を入出金タイミングへ +1ヶ月シフト
+    const start = shiftYearMonth(period.start_year_month!, CASHFLOW_MONTH_SHIFT)
+    // 明示的なend_year_monthがあればそれをシフトして使う(両端含む)。
+    // なければ次の期の開始月をシフトした前まで(片端含む)。
     if (period.end_year_month) {
-      const end = period.end_year_month
+      const end = shiftYearMonth(period.end_year_month, CASHFLOW_MONTH_SHIFT)
       return allMonthly.filter(m => m.yearMonth >= start && m.yearMonth <= end)
     }
-    const nextStart = idx + 1 < sortedPeriods.length ? sortedPeriods[idx + 1].start_year_month! : null
+    const nextStart = idx + 1 < sortedPeriods.length
+      ? shiftYearMonth(sortedPeriods[idx + 1].start_year_month!, CASHFLOW_MONTH_SHIFT)
+      : null
     return allMonthly.filter(m => m.yearMonth >= start && (nextStart === null || m.yearMonth < nextStart))
   }, [allMonthly, monthlyPeriod, periods])
 
@@ -462,9 +475,20 @@ export default function CashflowPage() {
 
           <Card className="p-0 overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
-              <h3 className="text-sm font-semibold">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
                 月次集計
-                {monthlyPeriod !== 'all' && <span className="ml-2 text-xs font-normal" style={{ color: 'var(--muted)' }}>({monthlyPeriod})</span>}
+                {monthlyPeriod !== 'all' && (
+                  <>
+                    <span className="text-xs font-normal" style={{ color: 'var(--muted)' }}>({monthlyPeriod})</span>
+                    {monthlyByPeriod.length > 0 && (
+                      <span className="text-xs font-normal px-2 py-0.5 rounded-full"
+                        style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
+                        title="期の請求月から+1ヶ月ずらした入金タイミングで集計しています">
+                        集計範囲: {monthlyByPeriod[0].label} 〜 {monthlyByPeriod[monthlyByPeriod.length - 1].label}
+                      </span>
+                    )}
+                  </>
+                )}
               </h3>
               <span className="text-xs" style={{ color: 'var(--muted)' }}>{monthlyByPeriod.length}ヶ月</span>
             </div>

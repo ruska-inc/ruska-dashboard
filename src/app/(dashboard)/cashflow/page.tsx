@@ -152,19 +152,14 @@ export default function CashflowPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
   })()
 
-  // 口座フィルターに応じた予測値(YYYY-MM別)
+  // 月別の予測値(口座横断のグローバル)
   const forecastByMonth = useMemo(() => {
     const map: Record<string, { income: number; expense: number }> = {}
-    const relevant = accountFilter === 'all'
-      ? forecasts
-      : forecasts.filter(f => f.account_id === accountFilter)
-    for (const f of relevant) {
-      if (!map[f.year_month]) map[f.year_month] = { income: 0, expense: 0 }
-      map[f.year_month].income += f.expected_income
-      map[f.year_month].expense += f.expected_expense
+    for (const f of forecasts) {
+      map[f.year_month] = { income: f.expected_income, expense: f.expected_expense }
     }
     return map
-  }, [forecasts, accountFilter])
+  }, [forecasts])
 
   const allMonthly = useMemo<MonthlyAgg[]>(() => {
     // filteredTransactions (口座フィルター反映済み) を月別に集計
@@ -259,21 +254,19 @@ export default function CashflowPage() {
   const [forecastDrafts, setForecastDrafts] = useState<Record<string, { income?: number; expense?: number }>>({})
 
   const handleSaveForecast = async (ym: string) => {
-    if (accountFilter === 'all' || !accountFilter) return  // 全口座では編集不可
     const draft = forecastDrafts[ym] ?? {}
-    const existing = forecasts.find(f => f.account_id === accountFilter && f.year_month === ym)
+    const existing = forecasts.find(f => f.year_month === ym)
     const income = draft.income ?? existing?.expected_income ?? 0
     const expense = draft.expense ?? existing?.expected_expense ?? 0
     if (income === (existing?.expected_income ?? 0) && expense === (existing?.expected_expense ?? 0)) return
     try {
       const saved = await upsertMonthlyForecast({
-        account_id: accountFilter,
         year_month: ym,
         expected_income: income,
         expected_expense: expense,
       })
       setForecasts(prev => {
-        const filtered = prev.filter(f => !(f.account_id === saved.account_id && f.year_month === saved.year_month))
+        const filtered = prev.filter(f => f.year_month !== saved.year_month)
         return [...filtered, saved]
       })
     } catch (e) {
@@ -573,11 +566,11 @@ export default function CashflowPage() {
                     <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>費用</th>
                     <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>収入</th>
                     <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: '#16A34A' }}
-                      title={accountFilter === 'all' ? '全口座では合算のみ表示(編集不可)' : '未来月のみ入力可能'}>
+                      title="未来月にクリックして入力">
                       予想収入
                     </th>
                     <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: '#EA580C' }}
-                      title={accountFilter === 'all' ? '全口座では合算のみ表示(編集不可)' : '未来月のみ入力可能'}>
+                      title="未来月にクリックして入力">
                       予想費用
                     </th>
                     <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>入出金差引額</th>
@@ -591,7 +584,6 @@ export default function CashflowPage() {
                 <tbody>
                   {monthlyByPeriod.map((m, i) => {
                     const draft = forecastDrafts[m.yearMonth]
-                    const editable = m.isFuture && accountFilter !== 'all'
                     const displayedIncome = draft?.income ?? m.expectedIncome
                     const displayedExpense = draft?.expense ?? m.expectedExpense
                     return (
@@ -611,44 +603,32 @@ export default function CashflowPage() {
                         <td className="px-4 py-2.5 text-right" style={{ color: m.income > 0 ? 'var(--accent)' : 'var(--muted)' }}>
                           {m.income > 0 ? formatCurrency(m.income) : '—'}
                         </td>
-                        {/* 予想収入(緑) */}
+                        {/* 予想収入(緑) — 未来月のみ編集可能 */}
                         <td className="px-2 py-1.5 text-right">
                           {m.isFuture ? (
-                            editable ? (
-                              <input
-                                type="number"
-                                value={displayedIncome || ''}
-                                placeholder="0"
-                                onChange={e => setForecastDrafts(prev => ({ ...prev, [m.yearMonth]: { ...prev[m.yearMonth], income: Number(e.target.value) || 0 } }))}
-                                onBlur={() => handleSaveForecast(m.yearMonth)}
-                                className="w-24 px-2 py-1 text-xs rounded-md border outline-none focus:ring-2 text-right"
-                                style={{ background: 'white', borderColor: 'var(--border)', color: '#16A34A' }}
-                              />
-                            ) : (
-                              <span style={{ color: m.expectedIncome > 0 ? '#16A34A' : 'var(--muted)' }}>
-                                {m.expectedIncome > 0 ? formatCurrency(m.expectedIncome) : '—'}
-                              </span>
-                            )
+                            <input
+                              type="number"
+                              value={displayedIncome || ''}
+                              placeholder="0"
+                              onChange={e => setForecastDrafts(prev => ({ ...prev, [m.yearMonth]: { ...prev[m.yearMonth], income: Number(e.target.value) || 0 } }))}
+                              onBlur={() => handleSaveForecast(m.yearMonth)}
+                              className="w-28 px-2 py-1 text-xs rounded-md border outline-none focus:ring-2 text-right"
+                              style={{ background: 'white', borderColor: 'var(--border)', color: '#16A34A' }}
+                            />
                           ) : <span style={{ color: 'var(--muted)' }}>—</span>}
                         </td>
-                        {/* 予想費用(オレンジ) */}
+                        {/* 予想費用(オレンジ) — 未来月のみ編集可能 */}
                         <td className="px-2 py-1.5 text-right">
                           {m.isFuture ? (
-                            editable ? (
-                              <input
-                                type="number"
-                                value={displayedExpense || ''}
-                                placeholder="0"
-                                onChange={e => setForecastDrafts(prev => ({ ...prev, [m.yearMonth]: { ...prev[m.yearMonth], expense: Number(e.target.value) || 0 } }))}
-                                onBlur={() => handleSaveForecast(m.yearMonth)}
-                                className="w-24 px-2 py-1 text-xs rounded-md border outline-none focus:ring-2 text-right"
-                                style={{ background: 'white', borderColor: 'var(--border)', color: '#EA580C' }}
-                              />
-                            ) : (
-                              <span style={{ color: m.expectedExpense > 0 ? '#EA580C' : 'var(--muted)' }}>
-                                {m.expectedExpense > 0 ? formatCurrency(m.expectedExpense) : '—'}
-                              </span>
-                            )
+                            <input
+                              type="number"
+                              value={displayedExpense || ''}
+                              placeholder="0"
+                              onChange={e => setForecastDrafts(prev => ({ ...prev, [m.yearMonth]: { ...prev[m.yearMonth], expense: Number(e.target.value) || 0 } }))}
+                              onBlur={() => handleSaveForecast(m.yearMonth)}
+                              className="w-28 px-2 py-1 text-xs rounded-md border outline-none focus:ring-2 text-right"
+                              style={{ background: 'white', borderColor: 'var(--border)', color: '#EA580C' }}
+                            />
                           ) : <span style={{ color: 'var(--muted)' }}>—</span>}
                         </td>
                         <td className="px-4 py-2.5 text-right font-medium" style={{ color: m.netChange >= 0 ? 'var(--accent)' : '#EF4444' }}>

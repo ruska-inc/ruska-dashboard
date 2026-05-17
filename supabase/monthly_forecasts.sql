@@ -1,16 +1,17 @@
 -- =============================================
--- 月次予測テーブル(口座×月で予想収入・予想費用を管理)
+-- 月次予測テーブル(月別の予想収入・予想費用 — 口座横断のグローバル予測)
 -- =============================================
 
-create table if not exists public.monthly_forecasts (
+-- 既に古い形(account_id付き)で作成されていた場合は作り直す
+drop table if exists public.monthly_forecasts cascade;
+
+create table public.monthly_forecasts (
   id uuid default gen_random_uuid() primary key,
-  account_id uuid references public.bank_accounts(id) on delete cascade not null,
-  year_month text not null,  -- YYYY-MM
+  year_month text not null unique,  -- YYYY-MM
   expected_income bigint not null default 0,
   expected_expense bigint not null default 0,
   created_at timestamptz default now(),
-  updated_at timestamptz default now(),
-  unique (account_id, year_month)
+  updated_at timestamptz default now()
 );
 
 alter table public.monthly_forecasts enable row level security;

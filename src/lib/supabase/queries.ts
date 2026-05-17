@@ -343,7 +343,6 @@ export async function getMonthlyForecasts() {
 }
 
 export async function upsertMonthlyForecast(input: {
-  account_id: string
   year_month: string
   expected_income: number
   expected_expense: number
@@ -351,7 +350,7 @@ export async function upsertMonthlyForecast(input: {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('monthly_forecasts')
-    .upsert({ ...input, updated_at: new Date().toISOString() }, { onConflict: 'account_id,year_month' })
+    .upsert({ ...input, updated_at: new Date().toISOString() }, { onConflict: 'year_month' })
     .select().single()
   if (error) throw error
   return data as MonthlyForecast

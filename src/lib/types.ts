@@ -119,10 +119,9 @@ export interface BankTransaction {
   created_at: string
 }
 
-// 月次予測(口座×月で予想収入・予想費用)
+// 月次予測(月別の予想収入・予想費用 — 口座横断のグローバル予測)
 export interface MonthlyForecast {
   id: string
-  account_id: string
   year_month: string  // "YYYY-MM"
   expected_income: number
   expected_expense: number

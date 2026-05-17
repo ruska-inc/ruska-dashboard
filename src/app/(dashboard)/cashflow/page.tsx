@@ -209,7 +209,7 @@ export default function CashflowPage() {
     let balance = 0
     let predicted = 0
     return sorted.map(([ym, { expense, income }]) => {
-      const isFuture = ym > currentYM
+      const isFuture = ym >= currentYM  // 当月も予測対象に含める
       const fIncome = forecastByMonth[ym]?.income ?? 0
       const fExpense = forecastByMonth[ym]?.expense ?? 0
       const netActual = income - expense
@@ -585,13 +585,13 @@ export default function CashflowPage() {
                     <th className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>年月</th>
                     <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>費用</th>
                     <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>収入</th>
-                    <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: '#16A34A' }}
-                      title="未来月にクリックして入力">
-                      予想収入
-                    </th>
                     <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: '#EA580C' }}
                       title="未来月にクリックして入力">
                       予想費用
+                    </th>
+                    <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: '#16A34A' }}
+                      title="未来月にクリックして入力">
+                      予想収入
                     </th>
                     <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>入出金差引額</th>
                     <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>口座残高</th>
@@ -623,20 +623,6 @@ export default function CashflowPage() {
                         <td className="px-4 py-2.5 text-right" style={{ color: m.income > 0 ? 'var(--accent)' : 'var(--muted)' }}>
                           {m.income > 0 ? formatCurrency(m.income) : '—'}
                         </td>
-                        {/* 予想収入(緑) — 未来月のみ編集可能 */}
-                        <td className="px-2 py-1.5 text-right">
-                          {m.isFuture ? (
-                            <input
-                              type="number"
-                              value={displayedIncome || ''}
-                              placeholder="0"
-                              onChange={e => setForecastDrafts(prev => ({ ...prev, [m.yearMonth]: { ...prev[m.yearMonth], income: Number(e.target.value) || 0 } }))}
-                              onBlur={() => handleSaveForecast(m.yearMonth)}
-                              className="w-28 px-2 py-1 text-xs rounded-md border outline-none focus:ring-2 text-right"
-                              style={{ background: 'white', borderColor: 'var(--border)', color: '#16A34A' }}
-                            />
-                          ) : <span style={{ color: 'var(--muted)' }}>—</span>}
-                        </td>
                         {/* 予想費用(オレンジ) — 未来月のみ編集可能 */}
                         <td className="px-2 py-1.5 text-right">
                           {m.isFuture ? (
@@ -648,6 +634,20 @@ export default function CashflowPage() {
                               onBlur={() => handleSaveForecast(m.yearMonth)}
                               className="w-28 px-2 py-1 text-xs rounded-md border outline-none focus:ring-2 text-right"
                               style={{ background: 'white', borderColor: 'var(--border)', color: '#EA580C' }}
+                            />
+                          ) : <span style={{ color: 'var(--muted)' }}>—</span>}
+                        </td>
+                        {/* 予想収入(緑) — 未来月のみ編集可能 */}
+                        <td className="px-2 py-1.5 text-right">
+                          {m.isFuture ? (
+                            <input
+                              type="number"
+                              value={displayedIncome || ''}
+                              placeholder="0"
+                              onChange={e => setForecastDrafts(prev => ({ ...prev, [m.yearMonth]: { ...prev[m.yearMonth], income: Number(e.target.value) || 0 } }))}
+                              onBlur={() => handleSaveForecast(m.yearMonth)}
+                              className="w-28 px-2 py-1 text-xs rounded-md border outline-none focus:ring-2 text-right"
+                              style={{ background: 'white', borderColor: 'var(--border)', color: '#16A34A' }}
                             />
                           ) : <span style={{ color: 'var(--muted)' }}>—</span>}
                         </td>
@@ -668,8 +668,8 @@ export default function CashflowPage() {
                       <td className="px-4 py-3 font-semibold text-xs" style={{ color: 'var(--muted)' }}>{monthlyPeriod} 合計</td>
                       <td className="px-4 py-3 text-right font-semibold" style={{ color: '#EF4444' }}>{formatCurrency(periodTotal.expense)}</td>
                       <td className="px-4 py-3 text-right font-semibold" style={{ color: 'var(--accent)' }}>{formatCurrency(periodTotal.income)}</td>
-                      <td className="px-4 py-3 text-right font-semibold" style={{ color: '#16A34A' }}>{formatCurrency(periodTotal.expectedIncome)}</td>
                       <td className="px-4 py-3 text-right font-semibold" style={{ color: '#EA580C' }}>{formatCurrency(periodTotal.expectedExpense)}</td>
+                      <td className="px-4 py-3 text-right font-semibold" style={{ color: '#16A34A' }}>{formatCurrency(periodTotal.expectedIncome)}</td>
                       <td className="px-4 py-3 text-right font-bold" style={{ color: periodTotal.netChange >= 0 ? 'var(--accent)' : '#EF4444' }}>
                         {periodTotal.netChange >= 0 ? '+' : ''}{formatCurrency(periodTotal.netChange)}
                       </td>

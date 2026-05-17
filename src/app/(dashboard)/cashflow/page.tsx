@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo } from 'react'
 import { Card } from '@/components/ui/Card'
 import { formatCurrency } from '@/lib/utils'
 import { cn } from '@/lib/utils'
-import { Plus, Upload, Trash2, Pencil, TrendingUp, TrendingDown, Wallet, FileSpreadsheet } from 'lucide-react'
+import { Plus, Upload, Trash2, Pencil, TrendingUp, TrendingDown, Wallet, FileSpreadsheet, Calendar } from 'lucide-react'
+import { usePeriods } from '@/lib/hooks/usePeriods'
 import type { BankAccount, BankTransaction } from '@/lib/types'
 import {
   getBankAccounts, createBankAccount, updateBankAccount, deleteBankAccount,
@@ -18,7 +19,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import SortableTh from '@/components/ui/SortableTh'
 import { useSortable } from '@/lib/hooks/useSortable'
 
-const tabs = ['取引明細', '口座マスタ']
+const tabs = ['取引明細', '月次集計', '口座マスタ']
 
 const SOURCE_LABELS: Record<string, string> = {
   manual: '手動',
@@ -34,6 +35,8 @@ export default function CashflowPage() {
   const [transactions, setTransactions] = useState<BankTransaction[]>([])
   const [loading, setLoading] = useState(true)
   const [accountFilter, setAccountFilter] = useState<string>('all')
+  const [monthlyPeriod, setMonthlyPeriod] = useState<string>('all')
+  const { periods } = usePeriods()
 
   const [importOpen, setImportOpen] = useState(false)
   const [sheetImportOpen, setSheetImportOpen] = useState(false)
@@ -112,6 +115,61 @@ export default function CashflowPage() {
     },
     { key: 'transaction_date', dir: 'desc' },
   )
+
+  // === 月次集計 ===
+  type MonthlyAgg = {
+    yearMonth: string
+    label: string
+    expense: number
+    income: number
+    netChange: number
+    balance: number
+  }
+
+  const allMonthly = useMemo<MonthlyAgg[]>(() => {
+    // filteredTransactions (口座フィルター反映済み) を月別に集計
+    const map: Record<string, { expense: number; income: number }> = {}
+    for (const t of filteredTransactions) {
+      const ym = t.transaction_date.slice(0, 7)
+      if (!map[ym]) map[ym] = { expense: 0, income: 0 }
+      map[ym].expense += t.expense
+      map[ym].income += t.income
+    }
+    const sorted = Object.entries(map).sort(([a], [b]) => a.localeCompare(b))
+    let balance = 0
+    return sorted.map(([ym, { expense, income }]) => {
+      const netChange = income - expense
+      balance += netChange
+      const year = parseInt(ym.slice(0, 4), 10)
+      const month = parseInt(ym.slice(5, 7), 10)
+      return {
+        yearMonth: ym,
+        label: `${year}年${month}月`,
+        expense,
+        income,
+        netChange,
+        balance,
+      }
+    })
+  }, [filteredTransactions])
+
+  const monthlyByPeriod = useMemo(() => {
+    if (monthlyPeriod === 'all') return allMonthly
+    const sortedPeriods = [...periods]
+      .filter(p => p.start_year_month)
+      .sort((a, b) => (a.start_year_month ?? '').localeCompare(b.start_year_month ?? ''))
+    const idx = sortedPeriods.findIndex(p => p.name === monthlyPeriod)
+    if (idx < 0) return allMonthly
+    const start = sortedPeriods[idx].start_year_month!
+    const end = idx + 1 < sortedPeriods.length ? sortedPeriods[idx + 1].start_year_month! : null
+    return allMonthly.filter(m => m.yearMonth >= start && (end === null || m.yearMonth < end))
+  }, [allMonthly, monthlyPeriod, periods])
+
+  const periodTotal = useMemo(() => ({
+    expense: monthlyByPeriod.reduce((s, m) => s + m.expense, 0),
+    income: monthlyByPeriod.reduce((s, m) => s + m.income, 0),
+    netChange: monthlyByPeriod.reduce((s, m) => s + m.netChange, 0),
+  }), [monthlyByPeriod])
 
   const accountTxCount = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -312,6 +370,99 @@ export default function CashflowPage() {
                       </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            )}
+          </Card>
+        </div>
+      )}
+
+      {/* === 月次集計タブ === */}
+      {!loading && activeTab === '月次集計' && (
+        <div className="space-y-4">
+          {/* 期フィルター */}
+          <div className="flex items-center gap-3">
+            <Calendar size={14} style={{ color: 'var(--muted)' }} />
+            <div className="flex gap-1 p-1 rounded-lg" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+              <button
+                onClick={() => setMonthlyPeriod('all')}
+                className={cn('px-3 py-1.5 text-xs font-medium rounded-md transition-all')}
+                style={monthlyPeriod === 'all' ? { background: 'var(--primary)', color: 'white' } : { color: 'var(--muted)' }}
+              >
+                全期間
+              </button>
+              {[...periods]
+                .filter(p => p.start_year_month)
+                .sort((a, b) => (b.start_year_month ?? '').localeCompare(a.start_year_month ?? ''))
+                .map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => setMonthlyPeriod(p.name)}
+                    className={cn('px-3 py-1.5 text-xs font-medium rounded-md transition-all')}
+                    style={monthlyPeriod === p.name ? { background: 'var(--primary)', color: 'white' } : { color: 'var(--muted)' }}
+                  >
+                    {p.name}
+                  </button>
+                ))}
+            </div>
+            <span className="text-xs" style={{ color: 'var(--muted)' }}>
+              {accountFilter === 'all' ? '全口座' : `口座: ${accounts.find(a => a.id === accountFilter)?.name ?? ''}`}
+            </span>
+          </div>
+
+          <Card className="p-0 overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
+              <h3 className="text-sm font-semibold">
+                月次集計
+                {monthlyPeriod !== 'all' && <span className="ml-2 text-xs font-normal" style={{ color: 'var(--muted)' }}>({monthlyPeriod})</span>}
+              </h3>
+              <span className="text-xs" style={{ color: 'var(--muted)' }}>{monthlyByPeriod.length}ヶ月</span>
+            </div>
+
+            {monthlyByPeriod.length === 0 ? (
+              <div className="text-center py-12 text-sm" style={{ color: 'var(--muted)' }}>
+                該当期間のデータがありません
+              </div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.45)' }}>
+                    <th className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>年月</th>
+                    <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>費用</th>
+                    <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>収入</th>
+                    <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>入出金差引額</th>
+                    <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>口座残高</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {monthlyByPeriod.map((m, i) => (
+                    <tr key={m.yearMonth}
+                      style={{ borderBottom: i < monthlyByPeriod.length - 1 ? '1px solid var(--border)' : 'none' }}
+                      className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-2.5 font-medium">{m.label}</td>
+                      <td className="px-4 py-2.5 text-right" style={{ color: m.expense > 0 ? '#EF4444' : 'var(--muted)' }}>
+                        {m.expense > 0 ? formatCurrency(m.expense) : '—'}
+                      </td>
+                      <td className="px-4 py-2.5 text-right" style={{ color: m.income > 0 ? 'var(--accent)' : 'var(--muted)' }}>
+                        {m.income > 0 ? formatCurrency(m.income) : '—'}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-medium" style={{ color: m.netChange >= 0 ? 'var(--accent)' : '#EF4444' }}>
+                        {m.netChange >= 0 ? '+' : ''}{formatCurrency(m.netChange)}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-semibold">{formatCurrency(m.balance)}</td>
+                    </tr>
+                  ))}
+                  {monthlyPeriod !== 'all' && (
+                    <tr style={{ borderTop: '2px solid var(--border)', background: 'rgba(245,245,250,0.6)' }}>
+                      <td className="px-4 py-3 font-semibold text-xs" style={{ color: 'var(--muted)' }}>{monthlyPeriod} 合計</td>
+                      <td className="px-4 py-3 text-right font-semibold" style={{ color: '#EF4444' }}>{formatCurrency(periodTotal.expense)}</td>
+                      <td className="px-4 py-3 text-right font-semibold" style={{ color: 'var(--accent)' }}>{formatCurrency(periodTotal.income)}</td>
+                      <td className="px-4 py-3 text-right font-bold" style={{ color: periodTotal.netChange >= 0 ? 'var(--accent)' : '#EF4444' }}>
+                        {periodTotal.netChange >= 0 ? '+' : ''}{formatCurrency(periodTotal.netChange)}
+                      </td>
+                      <td className="px-4 py-3" />
+                    </tr>
+                  )}
                 </tbody>
               </table>
             )}

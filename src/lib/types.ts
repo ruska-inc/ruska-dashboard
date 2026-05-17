@@ -43,6 +43,7 @@ export interface PeriodSetting {
   id: string
   name: string
   sort_order: number
+  start_year_month: string | null  // "YYYY-MM"形式、期の開始年月
   created_at: string
 }
 

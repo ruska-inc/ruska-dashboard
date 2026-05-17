@@ -215,12 +215,20 @@ export async function getPeriods() {
   return data as PeriodSetting[]
 }
 
-export async function createPeriod(name: string) {
+export async function createPeriod(name: string, start_year_month?: string | null) {
   const supabase = createClient()
   const { data: existing } = await supabase.from('periods').select('sort_order').order('sort_order', { ascending: false }).limit(1)
   const maxOrder = existing?.[0]?.sort_order ?? 0
   const { data, error } = await supabase
-    .from('periods').insert({ name, sort_order: maxOrder + 1 }).select().single()
+    .from('periods').insert({ name, sort_order: maxOrder + 1, start_year_month: start_year_month ?? null }).select().single()
+  if (error) throw error
+  return data as PeriodSetting
+}
+
+export async function updatePeriod(id: string, input: Partial<Pick<PeriodSetting, 'name' | 'sort_order' | 'start_year_month'>>) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('periods').update(input).eq('id', id).select().single()
   if (error) throw error
   return data as PeriodSetting
 }

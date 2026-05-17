@@ -26,13 +26,13 @@ export default function TransactionImportModal({ open, onClose, accounts, onImpo
   const [preview, setPreview] = useState<ParsedTransaction[]>([])
   const [error, setError] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
-  const [done, setDone] = useState(false)
+  const [done, setDone] = useState<{ inserted: number; skipped: number } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const reset = () => {
     setPreview([])
     setError(null)
-    setDone(false)
+    setDone(null)
     if (fileRef.current) fileRef.current.value = ''
   }
 
@@ -68,9 +68,9 @@ export default function TransactionImportModal({ open, onClose, accounts, onImpo
         description: p.description,
         source: format,
       }))
-      const inserted = await bulkInsertBankTransactions(inputs)
+      const { inserted, skipped } = await bulkInsertBankTransactions(inputs)
       onImported(inserted)
-      setDone(true)
+      setDone({ inserted: inserted.length, skipped })
     } catch (err) {
       setError((err as Error).message || '保存に失敗しました')
     } finally {
@@ -210,9 +210,16 @@ export default function TransactionImportModal({ open, onClose, accounts, onImpo
           </div>
         </div>
       ) : (
-        <div className="space-y-4 text-center py-8">
+        <div className="space-y-3 text-center py-8">
           <CheckCircle size={48} className="mx-auto" style={{ color: 'var(--accent)' }} />
-          <p className="font-semibold">{preview.length}件の取引を取り込みました</p>
+          <p className="font-semibold">
+            {done.inserted}件の取引を取り込みました
+          </p>
+          {done.skipped > 0 && (
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>
+              {done.skipped}件は既に登録済みのためスキップしました
+            </p>
+          )}
           <button
             type="button"
             onClick={handleClose}

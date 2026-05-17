@@ -28,7 +28,7 @@ export default function SheetImportModal({ open, onClose, accounts, onImported }
   const [mapping, setMapping] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
-  const [done, setDone] = useState<{ count: number; created: number } | null>(null)
+  const [done, setDone] = useState<{ count: number; created: number; skipped: number } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const reset = () => {
@@ -104,9 +104,9 @@ export default function SheetImportModal({ open, onClose, accounts, onImported }
         })
         .filter((x): x is NonNullable<typeof x> => x !== null)
 
-      const inserted = await bulkInsertBankTransactions(inputs)
+      const { inserted, skipped } = await bulkInsertBankTransactions(inputs)
       onImported(inserted, createdAccounts)
-      setDone({ count: inserted.length, created: createdAccounts.length })
+      setDone({ count: inserted.length, created: createdAccounts.length, skipped })
     } catch (err) {
       setError((err as Error).message || '取り込みに失敗しました')
     } finally {
@@ -229,6 +229,11 @@ export default function SheetImportModal({ open, onClose, accounts, onImported }
         <div className="space-y-3 text-center py-8">
           <CheckCircle size={48} className="mx-auto" style={{ color: 'var(--accent)' }} />
           <p className="font-semibold">{done.count}件の取引を取り込みました</p>
+          {done.skipped > 0 && (
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>
+              {done.skipped}件は既に登録済みのためスキップしました
+            </p>
+          )}
           {done.created > 0 && (
             <p className="text-sm flex items-center justify-center gap-1" style={{ color: 'var(--muted)' }}>
               <Plus size={12} />{done.created}件の新規口座を作成

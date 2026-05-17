@@ -299,12 +299,21 @@ export async function createBankTransaction(input: Omit<BankTransaction, 'id' | 
 }
 
 export async function bulkInsertBankTransactions(inputs: Omit<BankTransaction, 'id' | 'created_at' | 'account'>[]) {
-  if (inputs.length === 0) return [] as BankTransaction[]
+  if (inputs.length === 0) return { inserted: [] as BankTransaction[], skipped: 0 }
   const supabase = createClient()
+  // description が null だと一意制約マッチングに使えないため、空文字に正規化
+  const normalized = inputs.map(i => ({ ...i, description: i.description ?? '' }))
+  // 一意制約 bank_transactions_dedup により重複は自動スキップ
   const { data, error } = await supabase
-    .from('bank_transactions').insert(inputs).select('*, account:bank_accounts(*)')
+    .from('bank_transactions')
+    .upsert(normalized, {
+      onConflict: 'account_id,transaction_date,expense,income,description',
+      ignoreDuplicates: true,
+    })
+    .select('*, account:bank_accounts(*)')
   if (error) throw error
-  return data as BankTransaction[]
+  const inserted = (data ?? []) as BankTransaction[]
+  return { inserted, skipped: inputs.length - inserted.length }
 }
 
 export async function updateBankTransaction(id: string, input: Partial<Omit<BankTransaction, 'id' | 'created_at' | 'account'>>) {

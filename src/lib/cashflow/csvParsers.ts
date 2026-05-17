@@ -18,9 +18,17 @@ export const FORMAT_LABELS: Record<CsvFormat, string> = {
 
 const HEADER_ALIASES: Record<keyof Omit<ParsedTransaction, never>, string[]> = {
   date: ['日付', '取引日', '年月日', '日時'],
-  expense: ['お引き出し金額', 'お引出し金額', 'お引出し', '出金金額', '出金金額(円)', '出金額', '出金'],
-  income: ['お預け入れ金額', 'お預入れ金額', 'お預入れ', '入金金額', '入金金額(円)', '入金額', 'お預入れ金額(円)', '入金'],
-  description: ['内容', '摘要', 'お取り扱い内容', 'メモ', '取引内容'],
+  expense: [
+    'お引き出し金額(円)', 'お引出し金額(円)', 'お引出金額(円)',
+    'お引き出し金額', 'お引出し金額', 'お引出金額', 'お引出し', 'お引出',
+    '出金金額(円)', '出金金額', '出金額', '出金',
+  ],
+  income: [
+    'お預け入れ金額(円)', 'お預入れ金額(円)', 'お預入金額(円)',
+    'お預け入れ金額', 'お預入れ金額', 'お預入金額', 'お預入れ', 'お預入',
+    '入金金額(円)', '入金金額', '入金額', '入金',
+  ],
+  description: ['内容', '摘要', 'お取り扱い内容', 'お取扱い内容', 'メモ', '取引内容'],
 }
 
 function parseAmount(v: unknown): number {
@@ -72,8 +80,19 @@ function parseDate(v: unknown): string {
 }
 
 function findColumn(headers: string[], aliases: string[]): number {
+  // 1. 完全一致(空白除去)
   for (const alias of aliases) {
-    const idx = headers.findIndex(h => h && h.trim().replace(/\s/g, '') === alias.replace(/\s/g, ''))
+    const normalized = alias.replace(/\s/g, '')
+    const idx = headers.findIndex(h => h && h.trim().replace(/\s/g, '') === normalized)
+    if (idx >= 0) return idx
+  }
+  // 2. 部分一致(ヘッダーがエイリアスを含むケース。「お引出金額(円)」⊃「お引出金額」など)
+  for (const alias of aliases) {
+    const normalized = alias.replace(/\s/g, '')
+    const idx = headers.findIndex(h => {
+      const hn = h.trim().replace(/\s/g, '')
+      return hn.length >= 2 && hn.includes(normalized)
+    })
     if (idx >= 0) return idx
   }
   return -1

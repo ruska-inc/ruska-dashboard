@@ -161,6 +161,16 @@ export default function CashflowPage() {
     return map
   }, [forecasts])
 
+  // 期の設定は「請求月」基準。実際の銀行入金は翌月なので+1ヶ月ずらした範囲で集計する。
+  const CASHFLOW_MONTH_SHIFT = 1
+  const shiftYearMonth = (ym: string, delta: number): string => {
+    const [y, m] = ym.split('-').map(Number)
+    const total = y * 12 + (m - 1) + delta
+    const newY = Math.floor(total / 12)
+    const newM = (total % 12) + 1
+    return `${newY}-${String(newM).padStart(2, '0')}`
+  }
+
   const allMonthly = useMemo<MonthlyAgg[]>(() => {
     // filteredTransactions (口座フィルター反映済み) を月別に集計
     const map: Record<string, { expense: number; income: number }> = {}
@@ -174,6 +184,27 @@ export default function CashflowPage() {
     Object.keys(forecastByMonth).forEach(ym => {
       if (!map[ym]) map[ym] = { expense: 0, income: 0 }
     })
+    // 期の終わりまで月を埋める(空月も行として表示)
+    const periodEnds = periods
+      .map(p => {
+        if (p.end_year_month) return shiftYearMonth(p.end_year_month, CASHFLOW_MONTH_SHIFT)
+        if (p.start_year_month) return shiftYearMonth(p.start_year_month, CASHFLOW_MONTH_SHIFT + 11)
+        return null
+      })
+      .filter((x): x is string => !!x)
+    const existingMonths = Object.keys(map).sort()
+    const earliest = existingMonths[0] ?? currentYM
+    const periodMaxEnd = periodEnds.reduce((m, x) => x > m ? x : m, '')
+    const latest = [existingMonths[existingMonths.length - 1] ?? '', periodMaxEnd, currentYM]
+      .reduce((m, x) => x > m ? x : m, '')
+    if (earliest) {
+      let ym = earliest
+      while (ym <= latest) {
+        if (!map[ym]) map[ym] = { expense: 0, income: 0 }
+        ym = shiftYearMonth(ym, 1)
+      }
+    }
+
     const sorted = Object.entries(map).sort(([a], [b]) => a.localeCompare(b))
     let balance = 0
     let predicted = 0
@@ -204,24 +235,13 @@ export default function CashflowPage() {
         predictedBalance: predicted,
       }
     })
-  }, [filteredTransactions, forecastByMonth, currentYM])
+  }, [filteredTransactions, forecastByMonth, currentYM, periods])
 
   const selectedPeriodStartMissing = useMemo(() => {
     if (monthlyPeriod === 'all') return false
     const p = periods.find(p => p.name === monthlyPeriod)
     return !!p && !p.start_year_month
   }, [monthlyPeriod, periods])
-
-  // 期の設定は「請求月」基準。実際の銀行入金は翌月なので+1ヶ月ずらした範囲で集計する。
-  // 例) 期=2024-08〜2025-07 → 入金集計範囲=2024-09〜2025-08
-  const CASHFLOW_MONTH_SHIFT = 1
-  const shiftYearMonth = (ym: string, delta: number): string => {
-    const [y, m] = ym.split('-').map(Number)
-    const total = y * 12 + (m - 1) + delta
-    const newY = Math.floor(total / 12)
-    const newM = (total % 12) + 1
-    return `${newY}-${String(newM).padStart(2, '0')}`
-  }
 
   const monthlyByPeriod = useMemo(() => {
     if (monthlyPeriod === 'all') return allMonthly

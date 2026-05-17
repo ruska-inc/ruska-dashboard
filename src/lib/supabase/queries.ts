@@ -1,5 +1,5 @@
 import { createClient } from './client'
-import { Project, PaymentRecord, Contractor, ContractorAssignment, UserRole, PeriodSetting, Client } from '@/lib/types'
+import { Project, PaymentRecord, Contractor, ContractorAssignment, UserRole, PeriodSetting, Client, BankAccount, BankTransaction } from '@/lib/types'
 
 // =============================================
 // 顧客マスタ
@@ -228,5 +228,87 @@ export async function createPeriod(name: string) {
 export async function deletePeriod(id: string) {
   const supabase = createClient()
   const { error } = await supabase.from('periods').delete().eq('id', id)
+  if (error) throw error
+}
+
+// =============================================
+// 銀行口座マスタ
+// =============================================
+
+export async function getBankAccounts() {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('bank_accounts').select('*').order('sort_order', { ascending: true })
+  if (error) throw error
+  return data as BankAccount[]
+}
+
+export async function createBankAccount(input: { name: string; sort_order?: number }) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('bank_accounts').insert({ name: input.name, sort_order: input.sort_order ?? 0 })
+    .select().single()
+  if (error) throw error
+  return data as BankAccount
+}
+
+export async function updateBankAccount(id: string, input: Partial<Pick<BankAccount, 'name' | 'sort_order'>>) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('bank_accounts').update(input).eq('id', id).select().single()
+  if (error) throw error
+  return data as BankAccount
+}
+
+export async function deleteBankAccount(id: string) {
+  const supabase = createClient()
+  const { error } = await supabase.from('bank_accounts').delete().eq('id', id)
+  if (error) throw error
+}
+
+// =============================================
+// 入出金明細
+// =============================================
+
+export async function getBankTransactions(filters?: { accountId?: string }) {
+  const supabase = createClient()
+  let q = supabase
+    .from('bank_transactions')
+    .select('*, account:bank_accounts(*)')
+    .order('transaction_date', { ascending: false })
+  if (filters?.accountId) q = q.eq('account_id', filters.accountId)
+  const { data, error } = await q
+  if (error) throw error
+  return data as BankTransaction[]
+}
+
+export async function createBankTransaction(input: Omit<BankTransaction, 'id' | 'created_at' | 'account'>) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('bank_transactions').insert(input).select('*, account:bank_accounts(*)').single()
+  if (error) throw error
+  return data as BankTransaction
+}
+
+export async function bulkInsertBankTransactions(inputs: Omit<BankTransaction, 'id' | 'created_at' | 'account'>[]) {
+  if (inputs.length === 0) return [] as BankTransaction[]
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('bank_transactions').insert(inputs).select('*, account:bank_accounts(*)')
+  if (error) throw error
+  return data as BankTransaction[]
+}
+
+export async function updateBankTransaction(id: string, input: Partial<Omit<BankTransaction, 'id' | 'created_at' | 'account'>>) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('bank_transactions').update(input).eq('id', id).select('*, account:bank_accounts(*)').single()
+  if (error) throw error
+  return data as BankTransaction
+}
+
+export async function deleteBankTransaction(id: string) {
+  const supabase = createClient()
+  const { error } = await supabase.from('bank_transactions').delete().eq('id', id)
   if (error) throw error
 }

@@ -10,6 +10,7 @@ import {
   Settings,
   ChevronRight,
   LogOut,
+  Landmark,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -20,6 +21,7 @@ const navItems = [
   { label: 'ダッシュボード', href: '/dashboard', icon: LayoutDashboard },
   { label: 'プロジェクト管理', href: '/projects', icon: FolderKanban },
   { label: '売上・入金管理', href: '/sales', icon: Wallet },
+  { label: '入出金管理', href: '/cashflow', icon: Landmark },
   { label: '業務委託管理', href: '/contractors', icon: Users },
   { label: '設定', href: '/settings', icon: Settings },
 ]

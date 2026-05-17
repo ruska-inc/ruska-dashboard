@@ -94,6 +94,29 @@ export interface Contractor {
   created_at: string
 }
 
+// 銀行口座
+export interface BankAccount {
+  id: string
+  name: string
+  sort_order: number
+  created_at: string
+}
+
+// 入出金明細
+export type TransactionSource = 'manual' | 'csv_sbi' | 'csv_smbc' | 'csv_generic' | 'sheet_import'
+
+export interface BankTransaction {
+  id: string
+  account_id: string
+  account?: BankAccount
+  transaction_date: string
+  expense: number
+  income: number
+  description: string | null
+  source: TransactionSource
+  created_at: string
+}
+
 // 業務委託案件
 export type PaymentStatus = '支払済' | '未対応' | '確認中'
 

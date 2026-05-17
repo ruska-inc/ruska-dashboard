@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Modal from '@/components/ui/Modal'
 import { Contractor, ContractorAssignment, PaymentStatus, Period } from '@/lib/types'
 import { usePeriods } from '@/lib/hooks/usePeriods'
+import { toMonthInputValue, fromMonthInputValue } from '@/lib/utils'
 
 interface Props {
   open: boolean
@@ -131,22 +132,22 @@ export default function AssignmentFormModal({ open, onClose, onSave, contractors
           <div>
             <label className={labelClass} style={labelStyle}>請求月</label>
             <input
-              value={form.invoice_month}
-              onChange={e => setForm(f => ({ ...f, invoice_month: e.target.value }))}
+              type="month"
+              value={toMonthInputValue(form.invoice_month)}
+              onChange={e => setForm(f => ({ ...f, invoice_month: fromMonthInputValue(e.target.value) }))}
               className={inputClass}
               style={inputStyle}
-              placeholder="例: 2025年4月"
             />
           </div>
 
           <div>
             <label className={labelClass} style={labelStyle}>支払月</label>
             <input
-              value={form.payment_month}
-              onChange={e => setForm(f => ({ ...f, payment_month: e.target.value }))}
+              type="month"
+              value={toMonthInputValue(form.payment_month)}
+              onChange={e => setForm(f => ({ ...f, payment_month: fromMonthInputValue(e.target.value) }))}
               className={inputClass}
               style={inputStyle}
-              placeholder="例: 2025年5月"
             />
           </div>
         </div>

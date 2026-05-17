@@ -26,3 +26,19 @@ export function formatMonth(date: string | Date): string {
     month: 'long',
   }).format(new Date(date))
 }
+
+// "2025年5月" → "2025-05" (input[type=month]用)
+export function toMonthInputValue(jp: string | null | undefined): string {
+  if (!jp) return ''
+  const m = jp.match(/(\d+)年(\d+)月/)
+  if (!m) return ''
+  return `${m[1]}-${m[2].padStart(2, '0')}`
+}
+
+// "2025-05" → "2025年5月"
+export function fromMonthInputValue(iso: string): string {
+  if (!iso) return ''
+  const [y, m] = iso.split('-')
+  if (!y || !m) return ''
+  return `${y}年${parseInt(m, 10)}月`
+}

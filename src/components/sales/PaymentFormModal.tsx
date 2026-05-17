@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Modal from '@/components/ui/Modal'
 import { PaymentRecord, Period } from '@/lib/types'
 import { usePeriods } from '@/lib/hooks/usePeriods'
+import { toMonthInputValue, fromMonthInputValue } from '@/lib/utils'
 
 interface Props {
   open: boolean
@@ -105,11 +106,11 @@ export default function PaymentFormModal({ open, onClose, onSave, initial }: Pro
           <div>
             <label className={labelClass} style={labelStyle}>入金月</label>
             <input
-              value={form.payment_month}
-              onChange={e => setForm(f => ({ ...f, payment_month: e.target.value }))}
+              type="month"
+              value={toMonthInputValue(form.payment_month)}
+              onChange={e => setForm(f => ({ ...f, payment_month: fromMonthInputValue(e.target.value) }))}
               className={inputClass}
               style={inputStyle}
-              placeholder="例: 2025年4月"
             />
           </div>
 

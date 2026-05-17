@@ -5,6 +5,7 @@ import Modal from '@/components/ui/Modal'
 import { Project, ProjectStatus, ProjectProbability, Period, Client } from '@/lib/types'
 import { usePeriods } from '@/lib/hooks/usePeriods'
 import { getClients, createClientRecord } from '@/lib/supabase/queries'
+import { toMonthInputValue, fromMonthInputValue } from '@/lib/utils'
 
 const STATUSES: ProjectStatus[] = [
   '見積もり中', '進行中', '外注', '請求済み', '着金済み', '立て替え', '完了済', '失注'
@@ -227,11 +228,11 @@ export default function ProjectFormModal({ open, onClose, onSave, initial }: Pro
           <div>
             <label className={labelClass} style={labelStyle}>請求月</label>
             <input
-              value={form.invoice_month}
-              onChange={e => setForm(f => ({ ...f, invoice_month: e.target.value }))}
+              type="month"
+              value={toMonthInputValue(form.invoice_month)}
+              onChange={e => setForm(f => ({ ...f, invoice_month: fromMonthInputValue(e.target.value) }))}
               className={inputClass}
               style={inputStyle}
-              placeholder="例: 2025年4月"
             />
           </div>
 
@@ -239,11 +240,11 @@ export default function ProjectFormModal({ open, onClose, onSave, initial }: Pro
           <div>
             <label className={labelClass} style={labelStyle}>支払月</label>
             <input
-              value={form.payment_month}
-              onChange={e => setForm(f => ({ ...f, payment_month: e.target.value }))}
+              type="month"
+              value={toMonthInputValue(form.payment_month)}
+              onChange={e => setForm(f => ({ ...f, payment_month: fromMonthInputValue(e.target.value) }))}
               className={inputClass}
               style={inputStyle}
-              placeholder="例: 2025年5月"
             />
           </div>
 

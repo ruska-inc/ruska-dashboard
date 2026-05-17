@@ -53,15 +53,18 @@ function ItemList({ items, maxHeight = 224 }: { items: ChartItem[]; maxHeight?: 
   }
   return (
     <div className="space-y-1.5 overflow-auto pr-1" style={{ maxHeight }}>
-      {items.map((it, i) => (
-        <div key={i} className="flex justify-between gap-3 text-xs">
-          <span className="truncate">
-            {it.client && <span style={{ color: 'var(--muted)' }}>{it.client} / </span>}
-            {it.name}
-          </span>
-          <span className="font-medium whitespace-nowrap">{formatCurrency(it.amount)}</span>
-        </div>
-      ))}
+      {items.map((it, i) => {
+        const fullText = it.client ? `${it.client} / ${it.name}` : it.name
+        return (
+          <div key={i} className="flex justify-between gap-3 text-xs">
+            <span className="truncate cursor-help" title={fullText}>
+              {it.client && <span style={{ color: 'var(--muted)' }}>{it.client} / </span>}
+              {it.name}
+            </span>
+            <span className="font-medium whitespace-nowrap">{formatCurrency(it.amount)}</span>
+          </div>
+        )
+      })}
     </div>
   )
 }

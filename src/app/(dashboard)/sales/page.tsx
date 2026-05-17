@@ -12,6 +12,8 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { getProjects, getPaymentRecords, createPaymentRecord, updatePaymentRecord, deletePaymentRecord } from '@/lib/supabase/queries'
 import { Trash2 } from 'lucide-react'
 import { usePeriods } from '@/lib/hooks/usePeriods'
+import { useSortable, monthSortValue } from '@/lib/hooks/useSortable'
+import SortableTh from '@/components/ui/SortableTh'
 
 const tabs = ['入金記録', '請求管理']
 
@@ -66,6 +68,23 @@ export default function SalesPage() {
   const unpaidProjects = filteredProjects.filter(
     p => p.status === '請求済み' || (p.probability === '確定' && p.status === '進行中')
   )
+
+  const paymentsSort = useSortable(filteredPayments, {
+    project_name: r => r.project_name,
+    client_name: r => r.client_name,
+    payment_date: r => r.payment_date,
+    amount: r => r.amount,
+    payment_month: r => monthSortValue(r.payment_month),
+  })
+
+  const unpaidSort = useSortable(unpaidProjects, {
+    name: p => p.name,
+    client_name: p => p.client_name,
+    status: p => p.status,
+    amount: p => p.amount,
+    invoice_month: p => monthSortValue(p.invoice_month),
+    payment_month: p => monthSortValue(p.payment_month),
+  })
 
   return (
     <div className="space-y-5">
@@ -140,17 +159,20 @@ export default function SalesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.45)' }}>
-                  {['プロジェクト名', '顧客名', '入金日', '入金額', '入金月', ''].map(h => (
-                    <th key={h} className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>{h}</th>
-                  ))}
+                  <SortableTh label="プロジェクト名" sortKey="project_name" currentKey={paymentsSort.sortKey} dir={paymentsSort.sortDir} onSort={paymentsSort.toggle} />
+                  <SortableTh label="顧客名" sortKey="client_name" currentKey={paymentsSort.sortKey} dir={paymentsSort.sortDir} onSort={paymentsSort.toggle} />
+                  <SortableTh label="入金日" sortKey="payment_date" currentKey={paymentsSort.sortKey} dir={paymentsSort.sortDir} onSort={paymentsSort.toggle} />
+                  <SortableTh label="入金額" sortKey="amount" currentKey={paymentsSort.sortKey} dir={paymentsSort.sortDir} onSort={paymentsSort.toggle} />
+                  <SortableTh label="入金月" sortKey="payment_month" currentKey={paymentsSort.sortKey} dir={paymentsSort.sortDir} onSort={paymentsSort.toggle} />
+                  <SortableTh label="" />
                 </tr>
               </thead>
               <tbody>
-                {filteredPayments.map((record, i) => (
+                {paymentsSort.sorted.map((record, i) => (
                   <tr key={record.id}
                     onClick={() => setEditTarget(record)}
                     className="cursor-pointer hover:bg-gray-50 transition-colors group"
-                    style={{ borderBottom: i < filteredPayments.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                    style={{ borderBottom: i < paymentsSort.sorted.length - 1 ? '1px solid var(--border)' : 'none' }}>
                     <td className="px-4 py-3 font-medium">{record.project_name}</td>
                     <td className="px-4 py-3">
                       <span className="inline-block px-2 py-0.5 rounded-full text-xs"
@@ -188,15 +210,18 @@ export default function SalesPage() {
           <table className="w-full text-sm">
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.45)' }}>
-                {['プロジェクト名', '顧客名', 'ステータス', '金額（税抜）', '請求月', '支払月'].map(h => (
-                  <th key={h} className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>{h}</th>
-                ))}
+                <SortableTh label="プロジェクト名" sortKey="name" currentKey={unpaidSort.sortKey} dir={unpaidSort.sortDir} onSort={unpaidSort.toggle} />
+                <SortableTh label="顧客名" sortKey="client_name" currentKey={unpaidSort.sortKey} dir={unpaidSort.sortDir} onSort={unpaidSort.toggle} />
+                <SortableTh label="ステータス" sortKey="status" currentKey={unpaidSort.sortKey} dir={unpaidSort.sortDir} onSort={unpaidSort.toggle} />
+                <SortableTh label="金額（税抜）" sortKey="amount" currentKey={unpaidSort.sortKey} dir={unpaidSort.sortDir} onSort={unpaidSort.toggle} />
+                <SortableTh label="請求月" sortKey="invoice_month" currentKey={unpaidSort.sortKey} dir={unpaidSort.sortDir} onSort={unpaidSort.toggle} />
+                <SortableTh label="支払月" sortKey="payment_month" currentKey={unpaidSort.sortKey} dir={unpaidSort.sortDir} onSort={unpaidSort.toggle} />
               </tr>
             </thead>
             <tbody>
-              {unpaidProjects.map((project, i) => (
+              {unpaidSort.sorted.map((project, i) => (
                 <tr key={project.id} className="hover:bg-gray-50 transition-colors"
-                  style={{ borderBottom: i < unpaidProjects.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                  style={{ borderBottom: i < unpaidSort.sorted.length - 1 ? '1px solid var(--border)' : 'none' }}>
                   <td className="px-4 py-3 font-medium max-w-[200px]"><span className="block truncate">{project.name}</span></td>
                   <td className="px-4 py-3">
                     <span className="inline-block px-2 py-0.5 rounded-full text-xs"

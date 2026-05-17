@@ -13,6 +13,8 @@ import ExcelImportModal from '@/components/import/ExcelImportModal'
 import { getProjects, createProject, updateProject, deleteProject } from '@/lib/supabase/queries'
 import { Trash2, Upload } from 'lucide-react'
 import { usePeriods } from '@/lib/hooks/usePeriods'
+import { useSortable, monthSortValue } from '@/lib/hooks/useSortable'
+import SortableTh from '@/components/ui/SortableTh'
 
 const STATUS_ORDER: ProjectStatus[] = [
   '見積もり中', '進行中', '外注', '請求済み', '着金済み', '立て替え', '完了済', '失注'
@@ -60,14 +62,32 @@ export default function ProjectsPage() {
     })
   }, [projects, search, selectedPeriod])
 
+  const PROBABILITY_ORDER: Record<string, number> = {
+    '確定': 0, '確度（高）': 1, '確度（中）': 2, '確度（低）': 3, '保留・トラブル有り': 4, '失注': 5,
+  }
+  const { sorted: sortedProjects, sortKey, sortDir, toggle: toggleSort } = useSortable(
+    filtered,
+    {
+      name: p => p.name,
+      client_name: p => p.client_name,
+      status: p => STATUS_ORDER.indexOf(p.status),
+      probability: p => PROBABILITY_ORDER[p.probability] ?? 99,
+      amount: p => p.amount,
+      tax_amount: p => p.tax_amount,
+      period: p => p.period,
+      invoice_month: p => monthSortValue(p.invoice_month),
+      payment_month: p => monthSortValue(p.payment_month),
+    },
+  )
+
   const grouped = useMemo(() => {
     const groups: Record<string, Project[]> = {}
     STATUS_ORDER.forEach(status => {
-      const items = filtered.filter(p => p.status === status)
+      const items = sortedProjects.filter(p => p.status === status)
       if (items.length > 0) groups[status] = items
     })
     return groups
-  }, [filtered])
+  }, [sortedProjects])
 
   const toggleGroup = (key: string) => {
     setCollapsedGroups(prev => {
@@ -198,9 +218,16 @@ export default function ProjectsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.45)' }}>
-                    {['プロジェクト名', '顧客名', 'ステータス', '確度', '金額（税抜）', '税額', '期', '請求月', '入金月', ''].map(h => (
-                      <th key={h} className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>{h}</th>
-                    ))}
+                    <SortableTh label="プロジェクト名" sortKey="name" currentKey={sortKey} dir={sortDir} onSort={toggleSort} />
+                    <SortableTh label="顧客名" sortKey="client_name" currentKey={sortKey} dir={sortDir} onSort={toggleSort} />
+                    <SortableTh label="ステータス" sortKey="status" currentKey={sortKey} dir={sortDir} onSort={toggleSort} />
+                    <SortableTh label="確度" sortKey="probability" currentKey={sortKey} dir={sortDir} onSort={toggleSort} />
+                    <SortableTh label="金額（税抜）" sortKey="amount" currentKey={sortKey} dir={sortDir} onSort={toggleSort} />
+                    <SortableTh label="税額" sortKey="tax_amount" currentKey={sortKey} dir={sortDir} onSort={toggleSort} />
+                    <SortableTh label="期" sortKey="period" currentKey={sortKey} dir={sortDir} onSort={toggleSort} />
+                    <SortableTh label="請求月" sortKey="invoice_month" currentKey={sortKey} dir={sortDir} onSort={toggleSort} />
+                    <SortableTh label="入金月" sortKey="payment_month" currentKey={sortKey} dir={sortDir} onSort={toggleSort} />
+                    <SortableTh label="" />
                   </tr>
                 </thead>
                 <tbody>

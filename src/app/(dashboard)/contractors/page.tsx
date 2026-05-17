@@ -11,6 +11,8 @@ import AssignmentFormModal from '@/components/contractors/AssignmentFormModal'
 import ContractorFormModal from '@/components/contractors/ContractorFormModal'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { usePeriods } from '@/lib/hooks/usePeriods'
+import { useSortable, monthSortValue } from '@/lib/hooks/useSortable'
+import SortableTh from '@/components/ui/SortableTh'
 import {
   getContractors, getContractorAssignments,
   createContractorAssignment, updateContractorAssignment, deleteContractorAssignment,
@@ -104,6 +106,34 @@ export default function ContractorsPage() {
   const totalPaid = filteredAssignments.filter(a => a.payment_status === '支払済').reduce((s, a) => s + a.amount_excl_tax, 0)
   const totalPending = filteredAssignments.filter(a => a.payment_status === '未対応').reduce((s, a) => s + a.amount_excl_tax, 0)
 
+  const assignmentsSort = useSortable(filteredAssignments, {
+    project_name: a => a.project_name,
+    contractor: a => a.contractor?.company_name ?? '',
+    amount_excl_tax: a => a.amount_excl_tax,
+    amount_incl_tax: a => a.amount_incl_tax,
+    invoice_month: a => monthSortValue(a.invoice_month),
+    payment_month: a => monthSortValue(a.payment_month),
+    payment_status: a => a.payment_status,
+  })
+
+  const assignmentCount = useMemo(() => {
+    const counts: Record<string, number> = {}
+    assignments.forEach(a => {
+      counts[a.contractor_id] = (counts[a.contractor_id] ?? 0) + 1
+    })
+    return counts
+  }, [assignments])
+
+  const contractorsSort = useSortable(contractors, {
+    company_name: c => c.company_name,
+    contact_name: c => c.contact_name,
+    skills: c => c.skills.join(','),
+    email: c => c.email ?? '',
+    phone: c => c.phone ?? '',
+    invoice_status: c => c.invoice_status,
+    assignment_count: c => assignmentCount[c.id] ?? 0,
+  })
+
   return (
     <div className="space-y-5">
       {/* モーダル類 */}
@@ -191,17 +221,22 @@ export default function ContractorsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.45)' }}>
-                  {['案件名', '委託先', '費用（税抜）', '費用（税込）', '請求月', '支払月', '振込状況', ''].map(h => (
-                    <th key={h} className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>{h}</th>
-                  ))}
+                  <SortableTh label="案件名" sortKey="project_name" currentKey={assignmentsSort.sortKey} dir={assignmentsSort.sortDir} onSort={assignmentsSort.toggle} />
+                  <SortableTh label="委託先" sortKey="contractor" currentKey={assignmentsSort.sortKey} dir={assignmentsSort.sortDir} onSort={assignmentsSort.toggle} />
+                  <SortableTh label="費用（税抜）" sortKey="amount_excl_tax" currentKey={assignmentsSort.sortKey} dir={assignmentsSort.sortDir} onSort={assignmentsSort.toggle} />
+                  <SortableTh label="費用（税込）" sortKey="amount_incl_tax" currentKey={assignmentsSort.sortKey} dir={assignmentsSort.sortDir} onSort={assignmentsSort.toggle} />
+                  <SortableTh label="請求月" sortKey="invoice_month" currentKey={assignmentsSort.sortKey} dir={assignmentsSort.sortDir} onSort={assignmentsSort.toggle} />
+                  <SortableTh label="支払月" sortKey="payment_month" currentKey={assignmentsSort.sortKey} dir={assignmentsSort.sortDir} onSort={assignmentsSort.toggle} />
+                  <SortableTh label="振込状況" sortKey="payment_status" currentKey={assignmentsSort.sortKey} dir={assignmentsSort.sortDir} onSort={assignmentsSort.toggle} />
+                  <SortableTh label="" />
                 </tr>
               </thead>
               <tbody>
-                {filteredAssignments.map((a, i) => (
+                {assignmentsSort.sorted.map((a, i) => (
                   <tr key={a.id}
                     onClick={() => { setEditAssignment(a); setAssignmentModal(true) }}
                     className="cursor-pointer hover:bg-gray-50 transition-colors group"
-                    style={{ borderBottom: i < filteredAssignments.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                    style={{ borderBottom: i < assignmentsSort.sorted.length - 1 ? '1px solid var(--border)' : 'none' }}>
                     <td className="px-4 py-3 font-medium max-w-[160px]"><span className="block truncate">{a.project_name}</span></td>
                     <td className="px-4 py-3">
                       <p className="text-xs font-medium">{a.contractor?.company_name}</p>
@@ -244,17 +279,22 @@ export default function ContractorsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.45)' }}>
-                {['会社名', '担当者', 'スキル', 'メール', '電話', '適格番号', '案件数', ''].map(h => (
-                  <th key={h} className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>{h}</th>
-                ))}
+                <SortableTh label="会社名" sortKey="company_name" currentKey={contractorsSort.sortKey} dir={contractorsSort.sortDir} onSort={contractorsSort.toggle} />
+                <SortableTh label="担当者" sortKey="contact_name" currentKey={contractorsSort.sortKey} dir={contractorsSort.sortDir} onSort={contractorsSort.toggle} />
+                <SortableTh label="スキル" sortKey="skills" currentKey={contractorsSort.sortKey} dir={contractorsSort.sortDir} onSort={contractorsSort.toggle} />
+                <SortableTh label="メール" sortKey="email" currentKey={contractorsSort.sortKey} dir={contractorsSort.sortDir} onSort={contractorsSort.toggle} />
+                <SortableTh label="電話" sortKey="phone" currentKey={contractorsSort.sortKey} dir={contractorsSort.sortDir} onSort={contractorsSort.toggle} />
+                <SortableTh label="適格番号" sortKey="invoice_status" currentKey={contractorsSort.sortKey} dir={contractorsSort.sortDir} onSort={contractorsSort.toggle} />
+                <SortableTh label="案件数" sortKey="assignment_count" currentKey={contractorsSort.sortKey} dir={contractorsSort.sortDir} onSort={contractorsSort.toggle} />
+                <SortableTh label="" />
               </tr>
             </thead>
             <tbody>
-              {contractors.map((contractor, i) => (
+              {contractorsSort.sorted.map((contractor, i) => (
                 <tr key={contractor.id}
                   onClick={() => { setEditContractor(contractor); setContractorModal(true) }}
                   className="cursor-pointer hover:bg-gray-50 transition-colors group"
-                  style={{ borderBottom: i < contractors.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                  style={{ borderBottom: i < contractorsSort.sorted.length - 1 ? '1px solid var(--border)' : 'none' }}>
                   <td className="px-4 py-3 font-medium">{contractor.company_name}</td>
                   <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted)' }}>{contractor.contact_name}</td>
                   <td className="px-4 py-3">

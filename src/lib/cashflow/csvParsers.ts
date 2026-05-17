@@ -39,11 +39,34 @@ function parseDate(v: unknown): string {
     const d = String(v.getDate()).padStart(2, '0')
     return `${y}-${m}-${d}`
   }
+  // Excelの日付シリアル番号(40000以上を日付として扱う、概ね2009年以降)
+  if (typeof v === 'number' && v > 30000 && v < 80000) {
+    const parsed = XLSX.SSF.parse_date_code(v)
+    if (parsed) {
+      return `${parsed.y}-${String(parsed.m).padStart(2, '0')}-${String(parsed.d).padStart(2, '0')}`
+    }
+  }
   const s = String(v).trim()
-  // YYYY/MM/DD or YYYY-MM-DD or YYYY/M/D
-  const m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/)
+  // YYYY/MM/DD or YYYY-MM-DD or YYYY.MM.DD
+  let m = s.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/)
+  if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`
+  // YYYY年MM月DD日 (住信SBI などの典型)
+  m = s.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日?/)
+  if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`
+  // YY/MM/DD (西暦下2桁)
+  m = s.match(/^(\d{2})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/)
   if (m) {
-    return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`
+    const yy = parseInt(m[1], 10)
+    const year = yy < 50 ? 2000 + yy : 1900 + yy
+    return `${year}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`
+  }
+  // Excelシリアル番号(文字列)
+  if (/^\d{4,6}$/.test(s)) {
+    const n = parseInt(s, 10)
+    if (n > 30000 && n < 80000) {
+      const parsed = XLSX.SSF.parse_date_code(n)
+      if (parsed) return `${parsed.y}-${String(parsed.m).padStart(2, '0')}-${String(parsed.d).padStart(2, '0')}`
+    }
   }
   return ''
 }
@@ -106,16 +129,30 @@ export async function parseCsvFile(file: File, format: CsvFormat): Promise<Parse
   }
 
   const transactions: ParsedTransaction[] = []
+  let scannedRows = 0
+  let dateFailedCount = 0
+  let amountZeroCount = 0
+  const dateFailedSamples: string[] = []
   for (let i = headerIdx + 1; i < rows.length; i++) {
     const row = rows[i] as unknown[]
     if (!row || row.length === 0) continue
+    scannedRows++
 
     const date = parseDate(row[dateCol])
-    if (!date) continue
+    if (!date) {
+      dateFailedCount++
+      if (dateFailedSamples.length < 3) {
+        dateFailedSamples.push(String(row[dateCol] ?? ''))
+      }
+      continue
+    }
 
     const expense = expenseCol >= 0 ? parseAmount(row[expenseCol]) : 0
     const income = incomeCol >= 0 ? parseAmount(row[incomeCol]) : 0
-    if (expense === 0 && income === 0) continue
+    if (expense === 0 && income === 0) {
+      amountZeroCount++
+      continue
+    }
 
     const description = descCol >= 0
       ? String(row[descCol] ?? '').trim() || null
@@ -124,7 +161,20 @@ export async function parseCsvFile(file: File, format: CsvFormat): Promise<Parse
     transactions.push({ date, expense, income, description })
   }
 
-  // ソース指定を返す側で活用するためformatは引数のまま
+  // 取り込めなかった場合は何が原因か診断情報を投げる
+  if (transactions.length === 0 && scannedRows > 0) {
+    const hints: string[] = []
+    hints.push(`データ行 ${scannedRows} 行を確認しました`)
+    if (dateFailedCount > 0) {
+      hints.push(`日付パース失敗 ${dateFailedCount} 件 (サンプル: ${dateFailedSamples.map(s => `"${s}"`).join(', ')})`)
+    }
+    if (amountZeroCount > 0) {
+      hints.push(`金額が0だった行 ${amountZeroCount} 件`)
+    }
+    hints.push(`検出列: 日付=${headers[dateCol] ?? '(?)'}, 出金=${expenseCol >= 0 ? headers[expenseCol] : '(なし)'}, 入金=${incomeCol >= 0 ? headers[incomeCol] : '(なし)'}`)
+    throw new Error(hints.join(' / '))
+  }
+
   return transactions
 }
 

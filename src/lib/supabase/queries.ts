@@ -1,5 +1,5 @@
 import { createClient } from './client'
-import { Project, PaymentRecord, Contractor, ContractorAssignment, UserRole, PeriodSetting, Client, BankAccount, BankTransaction } from '@/lib/types'
+import { Project, PaymentRecord, Contractor, ContractorAssignment, UserRole, PeriodSetting, Client, BankAccount, BankTransaction, MonthlyForecast } from '@/lib/types'
 
 // =============================================
 // 顧客マスタ
@@ -328,4 +328,31 @@ export async function deleteBankTransaction(id: string) {
   const supabase = createClient()
   const { error } = await supabase.from('bank_transactions').delete().eq('id', id)
   if (error) throw error
+}
+
+// =============================================
+// 月次予測
+// =============================================
+
+export async function getMonthlyForecasts() {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('monthly_forecasts').select('*')
+  if (error) throw error
+  return data as MonthlyForecast[]
+}
+
+export async function upsertMonthlyForecast(input: {
+  account_id: string
+  year_month: string
+  expected_income: number
+  expected_expense: number
+}) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('monthly_forecasts')
+    .upsert({ ...input, updated_at: new Date().toISOString() }, { onConflict: 'account_id,year_month' })
+    .select().single()
+  if (error) throw error
+  return data as MonthlyForecast
 }

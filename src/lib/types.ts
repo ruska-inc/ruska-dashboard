@@ -119,6 +119,17 @@ export interface BankTransaction {
   created_at: string
 }
 
+// 月次予測(口座×月で予想収入・予想費用)
+export interface MonthlyForecast {
+  id: string
+  account_id: string
+  year_month: string  // "YYYY-MM"
+  expected_income: number
+  expected_expense: number
+  created_at: string
+  updated_at: string
+}
+
 // 業務委託案件
 export type PaymentStatus = '支払済' | '未対応' | '確認中'
 

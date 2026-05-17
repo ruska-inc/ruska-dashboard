@@ -6,11 +6,11 @@ import { formatCurrency } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { Plus, Upload, Trash2, Pencil, TrendingUp, TrendingDown, Wallet, FileSpreadsheet, Calendar } from 'lucide-react'
 import { usePeriods } from '@/lib/hooks/usePeriods'
-import type { BankAccount, BankTransaction, Project } from '@/lib/types'
+import type { BankAccount, BankTransaction, MonthlyForecast } from '@/lib/types'
 import {
   getBankAccounts, createBankAccount, updateBankAccount, deleteBankAccount,
   getBankTransactions, createBankTransaction, updateBankTransaction, deleteBankTransaction,
-  getProjects,
+  getMonthlyForecasts, upsertMonthlyForecast,
 } from '@/lib/supabase/queries'
 import TransactionImportModal from '@/components/cashflow/TransactionImportModal'
 import TransactionFormModal from '@/components/cashflow/TransactionFormModal'
@@ -34,7 +34,7 @@ export default function CashflowPage() {
   const [activeTab, setActiveTab] = useState('月次集計')
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [transactions, setTransactions] = useState<BankTransaction[]>([])
-  const [projects, setProjects] = useState<Project[]>([])
+  const [forecasts, setForecasts] = useState<MonthlyForecast[]>([])
   const [loading, setLoading] = useState(true)
   const [accountFilter, setAccountFilter] = useState<string>('all')
   const [monthlyPeriod, setMonthlyPeriod] = useState<string>('all')
@@ -64,8 +64,8 @@ export default function CashflowPage() {
   const [deleteAccount, setDeleteAccount] = useState<BankAccount | undefined>()
 
   useEffect(() => {
-    Promise.all([getBankAccounts(), getBankTransactions(), getProjects()])
-      .then(([a, t, p]) => { setAccounts(a); setTransactions(t); setProjects(p) })
+    Promise.all([getBankAccounts(), getBankTransactions(), getMonthlyForecasts()])
+      .then(([a, t, f]) => { setAccounts(a); setTransactions(t); setForecasts(f) })
       .finally(() => setLoading(false))
   }, [])
 
@@ -136,32 +136,35 @@ export default function CashflowPage() {
   type MonthlyAgg = {
     yearMonth: string
     label: string
+    isFuture: boolean
     expense: number
     income: number
     expectedIncome: number
-    netChange: number
-    balance: number
+    expectedExpense: number
+    netChange: number      // 実績(過去)or 予想(未来)
+    balance: number         // 実残高累計(未来は前月末のまま)
+    predictedBalance: number  // 予測残高累計(過去は実残高=balance)
   }
 
-  // 「2024年9月」→「2024-09」
-  const jpMonthToIso = (jp: string | null): string | null => {
-    if (!jp) return null
-    const m = jp.match(/(\d+)年(\d+)月/)
-    if (!m) return null
-    return `${m[1]}-${m[2].padStart(2, '0')}`
-  }
+  // 当月のYYYY-MM
+  const currentYM = (() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  })()
 
-  // 確定プロジェクトの payment_month 別の予想収入(税込)を集計
-  const expectedIncomeByMonth = useMemo(() => {
-    const map: Record<string, number> = {}
-    for (const p of projects) {
-      if (p.probability !== '確定') continue
-      const ym = jpMonthToIso(p.payment_month)
-      if (!ym) continue
-      map[ym] = (map[ym] ?? 0) + p.amount + p.tax_amount
+  // 口座フィルターに応じた予測値(YYYY-MM別)
+  const forecastByMonth = useMemo(() => {
+    const map: Record<string, { income: number; expense: number }> = {}
+    const relevant = accountFilter === 'all'
+      ? forecasts
+      : forecasts.filter(f => f.account_id === accountFilter)
+    for (const f of relevant) {
+      if (!map[f.year_month]) map[f.year_month] = { income: 0, expense: 0 }
+      map[f.year_month].income += f.expected_income
+      map[f.year_month].expense += f.expected_expense
     }
     return map
-  }, [projects])
+  }, [forecasts, accountFilter])
 
   const allMonthly = useMemo<MonthlyAgg[]>(() => {
     // filteredTransactions (口座フィルター反映済み) を月別に集計
@@ -172,28 +175,41 @@ export default function CashflowPage() {
       map[ym].expense += t.expense
       map[ym].income += t.income
     }
-    // 予想収入のある月で実データが無い場合も含める(将来予測)
-    Object.keys(expectedIncomeByMonth).forEach(ym => {
+    // 予測のある月で実データが無い場合(将来)も行を追加
+    Object.keys(forecastByMonth).forEach(ym => {
       if (!map[ym]) map[ym] = { expense: 0, income: 0 }
     })
     const sorted = Object.entries(map).sort(([a], [b]) => a.localeCompare(b))
     let balance = 0
+    let predicted = 0
     return sorted.map(([ym, { expense, income }]) => {
-      const netChange = income - expense
-      balance += netChange
+      const isFuture = ym > currentYM
+      const fIncome = forecastByMonth[ym]?.income ?? 0
+      const fExpense = forecastByMonth[ym]?.expense ?? 0
+      const netActual = income - expense
+      const netPredicted = fIncome - fExpense
+      if (!isFuture) {
+        balance += netActual
+        predicted = balance  // 過去は実残高に同期
+      } else {
+        predicted += netPredicted  // 未来は予測の積み上げ
+      }
       const year = parseInt(ym.slice(0, 4), 10)
       const month = parseInt(ym.slice(5, 7), 10)
       return {
         yearMonth: ym,
         label: `${year}年${month}月`,
+        isFuture,
         expense,
         income,
-        expectedIncome: expectedIncomeByMonth[ym] ?? 0,
-        netChange,
+        expectedIncome: fIncome,
+        expectedExpense: fExpense,
+        netChange: isFuture ? netPredicted : netActual,
         balance,
+        predictedBalance: predicted,
       }
     })
-  }, [filteredTransactions, expectedIncomeByMonth])
+  }, [filteredTransactions, forecastByMonth, currentYM])
 
   const selectedPeriodStartMissing = useMemo(() => {
     if (monthlyPeriod === 'all') return false
@@ -235,8 +251,35 @@ export default function CashflowPage() {
     expense: monthlyByPeriod.reduce((s, m) => s + m.expense, 0),
     income: monthlyByPeriod.reduce((s, m) => s + m.income, 0),
     expectedIncome: monthlyByPeriod.reduce((s, m) => s + m.expectedIncome, 0),
+    expectedExpense: monthlyByPeriod.reduce((s, m) => s + m.expectedExpense, 0),
     netChange: monthlyByPeriod.reduce((s, m) => s + m.netChange, 0),
   }), [monthlyByPeriod])
+
+  // 予測の編集ドラフト(口座切替/月切替まで一時保持)
+  const [forecastDrafts, setForecastDrafts] = useState<Record<string, { income?: number; expense?: number }>>({})
+
+  const handleSaveForecast = async (ym: string) => {
+    if (accountFilter === 'all' || !accountFilter) return  // 全口座では編集不可
+    const draft = forecastDrafts[ym] ?? {}
+    const existing = forecasts.find(f => f.account_id === accountFilter && f.year_month === ym)
+    const income = draft.income ?? existing?.expected_income ?? 0
+    const expense = draft.expense ?? existing?.expected_expense ?? 0
+    if (income === (existing?.expected_income ?? 0) && expense === (existing?.expected_expense ?? 0)) return
+    try {
+      const saved = await upsertMonthlyForecast({
+        account_id: accountFilter,
+        year_month: ym,
+        expected_income: income,
+        expected_expense: expense,
+      })
+      setForecasts(prev => {
+        const filtered = prev.filter(f => !(f.account_id === saved.account_id && f.year_month === saved.year_month))
+        return [...filtered, saved]
+      })
+    } catch (e) {
+      alert(`予測の保存に失敗しました: ${(e as Error).message}\n\nmonthly_forecastsテーブルが作成されているか確認してください(supabase/monthly_forecasts.sql)`)
+    }
+  }
 
   const accountTxCount = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -529,37 +572,94 @@ export default function CashflowPage() {
                     <th className="text-left px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>年月</th>
                     <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>費用</th>
                     <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>収入</th>
-                    <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}
-                      title="プロジェクト管理で確定&入金月が一致する案件の税込合計">
+                    <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: '#16A34A' }}
+                      title={accountFilter === 'all' ? '全口座では合算のみ表示(編集不可)' : '未来月のみ入力可能'}>
                       予想収入
+                    </th>
+                    <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: '#EA580C' }}
+                      title={accountFilter === 'all' ? '全口座では合算のみ表示(編集不可)' : '未来月のみ入力可能'}>
+                      予想費用
                     </th>
                     <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>入出金差引額</th>
                     <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--muted)' }}>口座残高</th>
+                    <th className="text-right px-4 py-2 text-xs font-medium" style={{ color: 'var(--accent)' }}
+                      title="過去:実残高、未来:予想収支を積み上げた予測残高">
+                      口座残高予測
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {monthlyByPeriod.map((m, i) => {
-                    const diff = m.income - m.expectedIncome
-                    const hasExpected = m.expectedIncome > 0
+                    const draft = forecastDrafts[m.yearMonth]
+                    const editable = m.isFuture && accountFilter !== 'all'
+                    const displayedIncome = draft?.income ?? m.expectedIncome
+                    const displayedExpense = draft?.expense ?? m.expectedExpense
                     return (
                       <tr key={m.yearMonth}
-                        style={{ borderBottom: i < monthlyByPeriod.length - 1 ? '1px solid var(--border)' : 'none' }}
+                        style={{
+                          borderBottom: i < monthlyByPeriod.length - 1 ? '1px solid var(--border)' : 'none',
+                          background: m.isFuture ? 'rgba(245,245,250,0.35)' : undefined,
+                        }}
                         className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-2.5 font-medium">{m.label}</td>
+                        <td className="px-4 py-2.5 font-medium">
+                          {m.label}
+                          {m.isFuture && <span className="ml-1.5 text-[10px] font-normal" style={{ color: 'var(--muted)' }}>(予測)</span>}
+                        </td>
                         <td className="px-4 py-2.5 text-right" style={{ color: m.expense > 0 ? '#EF4444' : 'var(--muted)' }}>
                           {m.expense > 0 ? formatCurrency(m.expense) : '—'}
                         </td>
                         <td className="px-4 py-2.5 text-right" style={{ color: m.income > 0 ? 'var(--accent)' : 'var(--muted)' }}>
                           {m.income > 0 ? formatCurrency(m.income) : '—'}
                         </td>
-                        <td className="px-4 py-2.5 text-right" style={{ color: hasExpected ? '#8B5CF6' : 'var(--muted)' }}
-                          title={hasExpected && m.income > 0 ? `実収入との差: ${diff >= 0 ? '+' : ''}${formatCurrency(diff)}` : undefined}>
-                          {hasExpected ? formatCurrency(m.expectedIncome) : '—'}
+                        {/* 予想収入(緑) */}
+                        <td className="px-2 py-1.5 text-right">
+                          {m.isFuture ? (
+                            editable ? (
+                              <input
+                                type="number"
+                                value={displayedIncome || ''}
+                                placeholder="0"
+                                onChange={e => setForecastDrafts(prev => ({ ...prev, [m.yearMonth]: { ...prev[m.yearMonth], income: Number(e.target.value) || 0 } }))}
+                                onBlur={() => handleSaveForecast(m.yearMonth)}
+                                className="w-24 px-2 py-1 text-xs rounded-md border outline-none focus:ring-2 text-right"
+                                style={{ background: 'white', borderColor: 'var(--border)', color: '#16A34A' }}
+                              />
+                            ) : (
+                              <span style={{ color: m.expectedIncome > 0 ? '#16A34A' : 'var(--muted)' }}>
+                                {m.expectedIncome > 0 ? formatCurrency(m.expectedIncome) : '—'}
+                              </span>
+                            )
+                          ) : <span style={{ color: 'var(--muted)' }}>—</span>}
+                        </td>
+                        {/* 予想費用(オレンジ) */}
+                        <td className="px-2 py-1.5 text-right">
+                          {m.isFuture ? (
+                            editable ? (
+                              <input
+                                type="number"
+                                value={displayedExpense || ''}
+                                placeholder="0"
+                                onChange={e => setForecastDrafts(prev => ({ ...prev, [m.yearMonth]: { ...prev[m.yearMonth], expense: Number(e.target.value) || 0 } }))}
+                                onBlur={() => handleSaveForecast(m.yearMonth)}
+                                className="w-24 px-2 py-1 text-xs rounded-md border outline-none focus:ring-2 text-right"
+                                style={{ background: 'white', borderColor: 'var(--border)', color: '#EA580C' }}
+                              />
+                            ) : (
+                              <span style={{ color: m.expectedExpense > 0 ? '#EA580C' : 'var(--muted)' }}>
+                                {m.expectedExpense > 0 ? formatCurrency(m.expectedExpense) : '—'}
+                              </span>
+                            )
+                          ) : <span style={{ color: 'var(--muted)' }}>—</span>}
                         </td>
                         <td className="px-4 py-2.5 text-right font-medium" style={{ color: m.netChange >= 0 ? 'var(--accent)' : '#EF4444' }}>
                           {m.netChange !== 0 ? `${m.netChange >= 0 ? '+' : ''}${formatCurrency(m.netChange)}` : '—'}
                         </td>
-                        <td className="px-4 py-2.5 text-right font-semibold">{formatCurrency(m.balance)}</td>
+                        <td className="px-4 py-2.5 text-right font-semibold" style={{ color: m.isFuture ? 'var(--muted)' : undefined }}>
+                          {m.isFuture ? '—' : formatCurrency(m.balance)}
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-semibold" style={{ color: 'var(--accent)' }}>
+                          {formatCurrency(m.predictedBalance)}
+                        </td>
                       </tr>
                     )
                   })}
@@ -568,10 +668,12 @@ export default function CashflowPage() {
                       <td className="px-4 py-3 font-semibold text-xs" style={{ color: 'var(--muted)' }}>{monthlyPeriod} 合計</td>
                       <td className="px-4 py-3 text-right font-semibold" style={{ color: '#EF4444' }}>{formatCurrency(periodTotal.expense)}</td>
                       <td className="px-4 py-3 text-right font-semibold" style={{ color: 'var(--accent)' }}>{formatCurrency(periodTotal.income)}</td>
-                      <td className="px-4 py-3 text-right font-semibold" style={{ color: '#8B5CF6' }}>{formatCurrency(periodTotal.expectedIncome)}</td>
+                      <td className="px-4 py-3 text-right font-semibold" style={{ color: '#16A34A' }}>{formatCurrency(periodTotal.expectedIncome)}</td>
+                      <td className="px-4 py-3 text-right font-semibold" style={{ color: '#EA580C' }}>{formatCurrency(periodTotal.expectedExpense)}</td>
                       <td className="px-4 py-3 text-right font-bold" style={{ color: periodTotal.netChange >= 0 ? 'var(--accent)' : '#EF4444' }}>
                         {periodTotal.netChange >= 0 ? '+' : ''}{formatCurrency(periodTotal.netChange)}
                       </td>
+                      <td className="px-4 py-3" />
                       <td className="px-4 py-3" />
                     </tr>
                   )}

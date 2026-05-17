@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { Project, PaymentRecord, ContractorAssignment, ProjectProbability } from '@/lib/types'
 import { getProjects, getPaymentRecords, getContractorAssignments } from '@/lib/supabase/queries'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
@@ -47,6 +48,38 @@ function PanelHeader({ label, onClose }: { label: string; onClose: () => void })
   )
 }
 
+function HoverName({ text, children }: { text: string; children: React.ReactNode }) {
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+  return (
+    <>
+      <span
+        className="truncate cursor-help"
+        onMouseEnter={(e) => setPos({ x: e.clientX, y: e.clientY })}
+        onMouseMove={(e) => setPos({ x: e.clientX, y: e.clientY })}
+        onMouseLeave={() => setPos(null)}
+      >
+        {children}
+      </span>
+      {mounted && pos && createPortal(
+        <div
+          className="fixed bg-gray-900 text-white text-xs rounded-md px-2.5 py-1.5 shadow-xl pointer-events-none whitespace-normal"
+          style={{
+            left: Math.min(pos.x + 14, window.innerWidth - 320),
+            top: pos.y + 14,
+            zIndex: 100000,
+            maxWidth: 320,
+          }}
+        >
+          {text}
+        </div>,
+        document.body,
+      )}
+    </>
+  )
+}
+
 function ItemList({ items, maxHeight = 224 }: { items: ChartItem[]; maxHeight?: number }) {
   if (items.length === 0) {
     return <p className="text-xs" style={{ color: 'var(--muted)' }}>—</p>
@@ -57,10 +90,10 @@ function ItemList({ items, maxHeight = 224 }: { items: ChartItem[]; maxHeight?: 
         const fullText = it.client ? `${it.client} / ${it.name}` : it.name
         return (
           <div key={i} className="flex justify-between gap-3 text-xs">
-            <span className="truncate cursor-help" title={fullText}>
+            <HoverName text={fullText}>
               {it.client && <span style={{ color: 'var(--muted)' }}>{it.client} / </span>}
               {it.name}
-            </span>
+            </HoverName>
             <span className="font-medium whitespace-nowrap">{formatCurrency(it.amount)}</span>
           </div>
         )

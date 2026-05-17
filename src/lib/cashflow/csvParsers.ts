@@ -56,10 +56,30 @@ function findColumn(headers: string[], aliases: string[]): number {
   return -1
 }
 
-export async function parseCsvFile(file: File, format: CsvFormat): Promise<ParsedTransaction[]> {
+/**
+ * ファイルの内容を適切なエンコーディング(UTF-8 / Shift_JIS)で復号する。
+ * 銀行のCSVは大抵 Shift_JIS。日本語が文字化けしないよう自動判定する。
+ */
+async function decodeFile(file: File): Promise<string> {
   const buffer = await file.arrayBuffer()
-  // SBIなどは Shift_JIS の場合があるが、xlsx が自動判定する
-  const wb = XLSX.read(buffer, { type: 'array', codepage: 932 })
+  const head = new Uint8Array(buffer.slice(0, 3))
+  // UTF-8 BOM
+  if (head[0] === 0xEF && head[1] === 0xBB && head[2] === 0xBF) {
+    return new TextDecoder('utf-8').decode(buffer)
+  }
+  // まず UTF-8 として strict 解釈を試みる
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(buffer)
+  } catch {
+    // UTF-8 として解釈できないバイトがあれば Shift_JIS と判定
+    return new TextDecoder('shift_jis').decode(buffer)
+  }
+}
+
+export async function parseCsvFile(file: File, format: CsvFormat): Promise<ParsedTransaction[]> {
+  const text = await decodeFile(file)
+  // 復号済みテキストを XLSX に渡す。BOMや改行は xlsx が処理する。
+  const wb = XLSX.read(text, { type: 'string' })
   const sheet = wb.Sheets[wb.SheetNames[0]]
   const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, raw: true })
 

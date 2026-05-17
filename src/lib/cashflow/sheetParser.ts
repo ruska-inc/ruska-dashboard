@@ -40,13 +40,35 @@ function parseDate(v: unknown): string {
  * スプレッドシートを読み込み、「日付」列と「口座名/費用」「口座名/収入」のペア列を
  * 検出して取引データを生成する。
  */
+async function readWorkbook(file: File) {
+  // CSV/TSV はテキストとして文字コード自動判定して読み込む
+  const isCsv = /\.(csv|tsv|txt)$/i.test(file.name)
+  if (isCsv) {
+    const buffer = await file.arrayBuffer()
+    const head = new Uint8Array(buffer.slice(0, 3))
+    let text: string
+    if (head[0] === 0xEF && head[1] === 0xBB && head[2] === 0xBF) {
+      text = new TextDecoder('utf-8').decode(buffer)
+    } else {
+      try {
+        text = new TextDecoder('utf-8', { fatal: true }).decode(buffer)
+      } catch {
+        text = new TextDecoder('shift_jis').decode(buffer)
+      }
+    }
+    return XLSX.read(text, { type: 'string', cellDates: true })
+  }
+  // .xlsx などはバイナリのまま
+  const buffer = await file.arrayBuffer()
+  return XLSX.read(buffer, { type: 'array', cellDates: true })
+}
+
 export async function parseSpreadsheetTransactions(file: File): Promise<{
   transactions: SheetParsedTransaction[]
   detectedAccounts: string[]
   sheetsScanned: string[]
 }> {
-  const buffer = await file.arrayBuffer()
-  const wb = XLSX.read(buffer, { type: 'array', cellDates: true })
+  const wb = await readWorkbook(file)
 
   const transactions: SheetParsedTransaction[] = []
   const detectedAccounts = new Set<string>()

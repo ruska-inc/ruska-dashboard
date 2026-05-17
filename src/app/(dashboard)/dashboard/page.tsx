@@ -9,7 +9,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell, Legend,
 } from 'recharts'
-import { TrendingUp, TrendingDown, Receipt, AlertCircle } from 'lucide-react'
+import { TrendingUp, TrendingDown, Receipt, AlertCircle, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { usePeriods } from '@/lib/hooks/usePeriods'
 
@@ -44,93 +44,94 @@ function toCombinedChartData(record: Record<string, CombinedBucket>): CombinedDa
     .map(([month, v]) => ({ month, ...v }))
 }
 
-const CombinedTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload?.length) return null
-  const data = payload[0]?.payload as CombinedDatum | undefined
-  if (!data) return null
+function PanelHeader({ label, onClose }: { label: string; onClose: () => void }) {
+  return (
+    <div className="flex items-center justify-between mb-3">
+      <p className="font-semibold text-base">{label}</p>
+      <button
+        onClick={onClose}
+        aria-label="閉じる"
+        className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-gray-100 transition-colors"
+        style={{ color: 'var(--muted)' }}
+      >
+        <X size={14} />
+      </button>
+    </div>
+  )
+}
+
+function ItemList({ items, maxHeight = 224 }: { items: ChartItem[]; maxHeight?: number }) {
+  if (items.length === 0) {
+    return <p className="text-xs" style={{ color: 'var(--muted)' }}>—</p>
+  }
+  return (
+    <div className="space-y-1.5 overflow-auto pr-1" style={{ maxHeight }}>
+      {items.map((it, i) => (
+        <div key={i} className="flex justify-between gap-3 text-xs">
+          <span className="truncate">
+            {it.client && <span style={{ color: 'var(--muted)' }}>{it.client} / </span>}
+            {it.name}
+          </span>
+          <span className="font-medium whitespace-nowrap">{formatCurrency(it.amount)}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+const panelClass = 'absolute z-50 bg-white border rounded-lg p-4 shadow-xl text-sm'
+const panelBaseStyle = { borderColor: 'var(--border)' as string }
+
+function PinnedCombinedPanel({ label, data, onClose }: {
+  label: string
+  data: CombinedBucket
+  onClose: () => void
+}) {
   return (
     <div
-      className="bg-white border rounded-lg p-4 shadow-xl text-sm"
-      style={{ borderColor: 'var(--border)', width: 720, maxWidth: '92vw' }}
+      className={panelClass}
+      style={{ ...panelBaseStyle, top: 12, right: 12, width: 560, maxWidth: 'calc(100% - 24px)' }}
     >
-      <p className="font-semibold mb-3 text-base">{label}</p>
+      <PanelHeader label={label} onClose={onClose} />
       <div className="grid grid-cols-2 gap-5">
         <div>
           <p className="font-semibold mb-2 pb-1.5" style={{ color: '#3B82F6', borderBottom: '1px solid var(--border)' }}>
             請求(税込) {formatCurrency(data.invoice)}
           </p>
-          <div className="space-y-1.5 max-h-56 overflow-auto pr-1">
-            {data.invoiceItems.length === 0 && (
-              <p style={{ color: 'var(--muted)' }}>—</p>
-            )}
-            {data.invoiceItems.map((it, i) => (
-              <div key={i} className="flex justify-between gap-3">
-                <span className="truncate">
-                  {it.client && <span style={{ color: 'var(--muted)' }}>{it.client} / </span>}
-                  {it.name}
-                </span>
-                <span className="font-medium whitespace-nowrap">{formatCurrency(it.amount)}</span>
-              </div>
-            ))}
-          </div>
+          <ItemList items={data.invoiceItems} maxHeight={192} />
         </div>
         <div>
           <p className="font-semibold mb-2 pb-1.5" style={{ color: 'var(--accent)', borderBottom: '1px solid var(--border)' }}>
             入金 {formatCurrency(data.payment)}
           </p>
-          <div className="space-y-1.5 max-h-56 overflow-auto pr-1">
-            {data.paymentItems.length === 0 && (
-              <p style={{ color: 'var(--muted)' }}>—</p>
-            )}
-            {data.paymentItems.map((it, i) => (
-              <div key={i} className="flex justify-between gap-3">
-                <span className="truncate">
-                  {it.client && <span style={{ color: 'var(--muted)' }}>{it.client} / </span>}
-                  {it.name}
-                </span>
-                <span className="font-medium whitespace-nowrap">{formatCurrency(it.amount)}</span>
-              </div>
-            ))}
-          </div>
+          <ItemList items={data.paymentItems} maxHeight={192} />
         </div>
       </div>
     </div>
   )
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    const items: ChartItem[] = payload[0].payload?.items ?? []
-    return (
-      <div
-        className="bg-white border rounded-lg p-4 shadow-xl text-sm"
-        style={{ borderColor: 'var(--border)', width: 420, maxWidth: '90vw' }}
-      >
-        <p className="font-semibold mb-2 text-base">{label}</p>
-        <p className="mb-3 font-semibold" style={{ color: 'var(--accent)' }}>
-          合計: {formatCurrency(payload[0].value)}
-        </p>
-        {items.length > 0 && (
-          <div className="space-y-1.5 max-h-64 overflow-auto pr-1" style={{ borderTop: '1px solid var(--border)', paddingTop: 10 }}>
-            {items.map((it, i) => (
-              <div key={i} className="flex justify-between gap-3">
-                <span className="truncate">
-                  {it.client && (
-                    <span style={{ color: 'var(--muted)' }}>{it.client} / </span>
-                  )}
-                  {it.name}
-                </span>
-                <span className="font-medium whitespace-nowrap">
-                  {formatCurrency(it.amount)}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+function PinnedSimplePanel({ label, color, total, items, onClose }: {
+  label: string
+  color: string
+  total: number
+  items: ChartItem[]
+  onClose: () => void
+}) {
+  return (
+    <div
+      className={panelClass}
+      style={{ ...panelBaseStyle, top: 12, right: 12, width: 360, maxWidth: 'calc(100% - 24px)' }}
+    >
+      <PanelHeader label={label} onClose={onClose} />
+      <p className="mb-3 font-semibold" style={{ color }}>
+        合計: {formatCurrency(total)}
+      </p>
+      <div style={{ borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+        <ItemList items={items} maxHeight={192} />
       </div>
-    )
-  }
-  return null
+    </div>
+  )
 }
 
 export default function DashboardPage() {
@@ -139,7 +140,16 @@ export default function DashboardPage() {
   const [assignments, setAssignments] = useState<ContractorAssignment[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedPeriod, setSelectedPeriod] = useState('全期')
+  const [combinedPinned, setCombinedPinned] = useState<string | null>(null)
+  const [outsourcePinned, setOutsourcePinned] = useState<string | null>(null)
+  const [probabilityPinned, setProbabilityPinned] = useState<string | null>(null)
   const { periods } = usePeriods()
+
+  const toggle = (setter: React.Dispatch<React.SetStateAction<string | null>>) =>
+    (key: string | null | undefined) => {
+      if (!key) return
+      setter(prev => (prev === key ? null : key))
+    }
 
   useEffect(() => {
     if (periods.length > 0) setSelectedPeriod(periods[0].name)
@@ -300,54 +310,93 @@ export default function DashboardPage() {
 
       {/* グラフ */}
       <div className="grid grid-cols-2 gap-4">
-        <Card className="col-span-2 relative z-0 hover:z-50">
+        <Card className={cn('col-span-2 relative', combinedPinned ? 'z-50' : 'z-0')}>
           <CardHeader>
             <CardTitle>月ごとの請求 / 入金</CardTitle>
             <span className="text-xs" style={{ color: 'var(--muted)' }}>
-              請求月と入金月のズレ・未入金分が一目で分かります
+              バーをクリックで詳細を固定表示
             </span>
           </CardHeader>
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={toCombinedChartData(combinedByMonth)} barGap={4}>
+            <BarChart
+              data={toCombinedChartData(combinedByMonth)}
+              barGap={4}
+              onClick={(s: any) => toggle(setCombinedPinned)(s?.activeLabel)}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
               <XAxis dataKey="month" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `¥${(v / 10000).toFixed(0)}万`} />
-              <Tooltip content={<CombinedTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)' }} wrapperStyle={{ zIndex: 9999, outline: 'none' }} />
+              <Tooltip content={() => null} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="invoice" name="請求額(税込)" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="payment" name="入金額" fill="var(--accent)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="invoice" name="請求額(税込)" fill="#3B82F6" radius={[4, 4, 0, 0]} style={{ cursor: 'pointer' }} />
+              <Bar dataKey="payment" name="入金額" fill="var(--accent)" radius={[4, 4, 0, 0]} style={{ cursor: 'pointer' }} />
             </BarChart>
           </ResponsiveContainer>
+          {combinedPinned && combinedByMonth[combinedPinned] && (
+            <PinnedCombinedPanel
+              label={combinedPinned}
+              data={combinedByMonth[combinedPinned]}
+              onClose={() => setCombinedPinned(null)}
+            />
+          )}
         </Card>
 
-        <Card className="relative z-0 hover:z-50">
+        <Card className={cn('relative', outsourcePinned ? 'z-50' : 'z-0')}>
           <CardHeader><CardTitle>月ごとの外注費用</CardTitle></CardHeader>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={toChartData(outsourceByMonth)}>
+            <BarChart
+              data={toChartData(outsourceByMonth)}
+              onClick={(s: any) => toggle(setOutsourcePinned)(s?.activeLabel)}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
               <XAxis dataKey="month" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `¥${(v / 10000).toFixed(0)}万`} />
-              <Tooltip content={<CustomTooltip />} wrapperStyle={{ zIndex: 9999, outline: 'none' }} />
-              <Bar dataKey="value" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
+              <Tooltip content={() => null} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
+              <Bar dataKey="value" fill="#8B5CF6" radius={[4, 4, 0, 0]} style={{ cursor: 'pointer' }} />
             </BarChart>
           </ResponsiveContainer>
+          {outsourcePinned && outsourceByMonth[outsourcePinned] && (
+            <PinnedSimplePanel
+              label={outsourcePinned}
+              color="#8B5CF6"
+              total={outsourceByMonth[outsourcePinned].total}
+              items={outsourceByMonth[outsourcePinned].items}
+              onClose={() => setOutsourcePinned(null)}
+            />
+          )}
         </Card>
 
-        <Card className="relative z-0 hover:z-50">
+        <Card className={cn('relative', probabilityPinned ? 'z-50' : 'z-0')}>
           <CardHeader><CardTitle>確度別の総額</CardTitle></CardHeader>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={probabilityData}>
+            <BarChart
+              data={probabilityData}
+              onClick={(s: any) => toggle(setProbabilityPinned)(s?.activeLabel)}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
               <XAxis dataKey="name" tick={{ fontSize: 10 }} />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `¥${(v / 10000).toFixed(0)}万`} />
-              <Tooltip content={<CustomTooltip />} wrapperStyle={{ zIndex: 9999, outline: 'none' }} />
-              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+              <Tooltip content={() => null} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
+              <Bar dataKey="value" radius={[4, 4, 0, 0]} style={{ cursor: 'pointer' }}>
                 {probabilityData.map((_, index) => (
                   <Cell key={index} fill={probabilityColors[index]} />
                 ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+          {probabilityPinned && (() => {
+            const d = probabilityData.find(p => p.name === probabilityPinned)
+            if (!d) return null
+            return (
+              <PinnedSimplePanel
+                label={probabilityPinned}
+                color={probabilityColors[probabilityData.indexOf(d)] ?? '#6366F1'}
+                total={d.value}
+                items={d.items}
+                onClose={() => setProbabilityPinned(null)}
+              />
+            )
+          })()}
         </Card>
       </div>
 

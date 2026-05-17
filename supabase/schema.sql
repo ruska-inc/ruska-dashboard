@@ -216,9 +216,13 @@ create policy "assignments_update" on public.contractor_assignments for update u
 -- periods
 drop policy if exists "periods_select" on public.periods;
 drop policy if exists "periods_insert" on public.periods;
+drop policy if exists "periods_update" on public.periods;
 drop policy if exists "periods_delete" on public.periods;
 create policy "periods_select" on public.periods for select using (true);
 create policy "periods_insert" on public.periods for insert with check (
+  get_my_role() in ('admin', 'management')
+);
+create policy "periods_update" on public.periods for update using (
   get_my_role() in ('admin', 'management')
 );
 create policy "periods_delete" on public.periods for delete using (

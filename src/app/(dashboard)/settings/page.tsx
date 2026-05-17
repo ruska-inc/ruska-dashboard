@@ -95,8 +95,12 @@ export default function SettingsPage() {
   }
 
   const handleUpdatePeriodStart = async (id: string, value: string) => {
-    const updated = await updatePeriod(id, { start_year_month: value || null })
-    setPeriods(prev => prev.map(p => p.id === id ? updated : p))
+    try {
+      const updated = await updatePeriod(id, { start_year_month: value || null })
+      setPeriods(prev => prev.map(p => p.id === id ? updated : p))
+    } catch (err) {
+      alert(`期の保存に失敗しました: ${(err as Error).message}\n\nperiodsテーブルのUPDATEポリシーが不足している可能性があります。supabase/add_period_start_month.sqlを実行してください。`)
+    }
   }
 
   const handleInvite = async (e: React.FormEvent) => {

@@ -153,13 +153,19 @@ export default function CashflowPage() {
     })
   }, [filteredTransactions])
 
+  const selectedPeriodStartMissing = useMemo(() => {
+    if (monthlyPeriod === 'all') return false
+    const p = periods.find(p => p.name === monthlyPeriod)
+    return !!p && !p.start_year_month
+  }, [monthlyPeriod, periods])
+
   const monthlyByPeriod = useMemo(() => {
     if (monthlyPeriod === 'all') return allMonthly
     const sortedPeriods = [...periods]
       .filter(p => p.start_year_month)
       .sort((a, b) => (a.start_year_month ?? '').localeCompare(b.start_year_month ?? ''))
     const idx = sortedPeriods.findIndex(p => p.name === monthlyPeriod)
-    if (idx < 0) return allMonthly
+    if (idx < 0) return allMonthly  // 開始月未設定: フォールバックで全期表示
     const start = sortedPeriods[idx].start_year_month!
     const end = idx + 1 < sortedPeriods.length ? sortedPeriods[idx + 1].start_year_month! : null
     return allMonthly.filter(m => m.yearMonth >= start && (end === null || m.yearMonth < end))
@@ -392,16 +398,25 @@ export default function CashflowPage() {
                 全期間
               </button>
               {[...periods]
-                .filter(p => p.start_year_month)
-                .sort((a, b) => (b.start_year_month ?? '').localeCompare(a.start_year_month ?? ''))
+                .sort((a, b) => {
+                  // 開始月があるものは降順、無いものは末尾
+                  const aHas = !!a.start_year_month
+                  const bHas = !!b.start_year_month
+                  if (aHas && bHas) return (b.start_year_month ?? '').localeCompare(a.start_year_month ?? '')
+                  if (aHas) return -1
+                  if (bHas) return 1
+                  return b.sort_order - a.sort_order
+                })
                 .map(p => (
                   <button
                     key={p.id}
                     onClick={() => setMonthlyPeriod(p.name)}
-                    className={cn('px-3 py-1.5 text-xs font-medium rounded-md transition-all')}
+                    className={cn('px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1')}
                     style={monthlyPeriod === p.name ? { background: 'var(--primary)', color: 'white' } : { color: 'var(--muted)' }}
+                    title={!p.start_year_month ? '開始月が未設定です。設定 > 期の管理で設定してください' : undefined}
                   >
                     {p.name}
+                    {!p.start_year_month && <span className="text-[10px] opacity-60">⚠</span>}
                   </button>
                 ))}
             </div>
@@ -409,6 +424,18 @@ export default function CashflowPage() {
               {accountFilter === 'all' ? '全口座' : `口座: ${accounts.find(a => a.id === accountFilter)?.name ?? ''}`}
             </span>
           </div>
+
+          {selectedPeriodStartMissing && (
+            <div className="px-3 py-2 rounded-lg text-xs flex items-start gap-2"
+              style={{ background: 'rgba(254,243,199,0.7)', color: '#92400E' }}>
+              <span>⚠</span>
+              <span>
+                「{monthlyPeriod}」の開始月が未設定です。
+                <a href="/settings" className="underline ml-1">設定 → 期の管理</a>
+                から「開始月」を設定すると、この期だけを切り出せるようになります。現在は全期間を表示しています。
+              </span>
+            </div>
+          )}
 
           <Card className="p-0 overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { UserRole, PeriodSetting, Client } from '@/lib/types'
 import { Shield, User, Plus, Download, Mail, Trash2, CalendarDays, Building2, Pencil } from 'lucide-react'
-import { getAllProfiles, updateProfileRole, getPeriods, createPeriod, deletePeriod, getClients, createClientRecord, updateClientRecord, deleteClientRecord } from '@/lib/supabase/queries'
+import { getAllProfiles, updateProfileRole, getPeriods, createPeriod, updatePeriod, deletePeriod, getClients, createClientRecord, updateClientRecord, deleteClientRecord } from '@/lib/supabase/queries'
 import { createClient } from '@/lib/supabase/client'
 
 const roleLabels: Record<UserRole, string> = {
@@ -92,6 +92,11 @@ export default function SettingsPage() {
   const handleDeletePeriod = async (id: string) => {
     await deletePeriod(id)
     setPeriods(prev => prev.filter(p => p.id !== id))
+  }
+
+  const handleUpdatePeriodStart = async (id: string, value: string) => {
+    const updated = await updatePeriod(id, { start_year_month: value || null })
+    setPeriods(prev => prev.map(p => p.id === id ? updated : p))
   }
 
   const handleInvite = async (e: React.FormEvent) => {
@@ -282,9 +287,19 @@ export default function SettingsPage() {
 
         <div className="space-y-2">
           {periods.map(period => (
-            <div key={period.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg"
+            <div key={period.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg"
               style={{ background: 'rgba(255,255,255,0.45)', border: '1px solid var(--border)' }}>
-              <span className="text-sm font-medium">{period.name}</span>
+              <span className="text-sm font-medium flex-1">{period.name}</span>
+              <div className="flex items-center gap-1.5">
+                <label className="text-xs" style={{ color: 'var(--muted)' }}>開始月:</label>
+                <input
+                  type="month"
+                  value={period.start_year_month ?? ''}
+                  onChange={e => handleUpdatePeriodStart(period.id, e.target.value)}
+                  className="px-2 py-1 text-xs rounded-md border outline-none"
+                  style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                />
+              </div>
               <button onClick={() => handleDeletePeriod(period.id)}
                 className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-red-50"
                 style={{ color: '#EF4444' }}>
@@ -295,6 +310,9 @@ export default function SettingsPage() {
           {periods.length === 0 && (
             <p className="text-xs text-center py-4" style={{ color: 'var(--muted)' }}>期が登録されていません</p>
           )}
+          <p className="text-xs mt-3" style={{ color: 'var(--muted)' }}>
+            ※ 「開始月」は入出金管理の月次集計で期切り替えに使用します。例: 第3期=2024年9月
+          </p>
         </div>
       </Card>
 

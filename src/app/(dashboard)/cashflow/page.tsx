@@ -34,16 +34,9 @@ export default function CashflowPage() {
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [transactions, setTransactions] = useState<BankTransaction[]>([])
   const [loading, setLoading] = useState(true)
-  const [accountFilter, setAccountFilter] = useState<string>('')
+  const [accountFilter, setAccountFilter] = useState<string>('all')
   const [monthlyPeriod, setMonthlyPeriod] = useState<string>('all')
   const { periods } = usePeriods()
-
-  // 口座が読み込まれたら最初の口座をデフォルト選択
-  useEffect(() => {
-    if (accounts.length > 0 && !accountFilter) {
-      setAccountFilter(accounts[0].id)
-    }
-  }, [accounts, accountFilter])
 
   // 期が読み込まれたら最新の期をデフォルト選択
   useEffect(() => {
@@ -115,7 +108,7 @@ export default function CashflowPage() {
 
   // === フィルタリング ===
   const filteredTransactions = useMemo(() => {
-    if (!accountFilter) return []
+    if (accountFilter === 'all') return transactions
     return transactions.filter(t => t.account_id === accountFilter)
   }, [transactions, accountFilter])
 
@@ -284,6 +277,11 @@ export default function CashflowPage() {
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium" style={{ color: 'var(--muted)' }}>口座:</span>
             <div className="flex gap-1 p-1 rounded-lg" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+              <button onClick={() => setAccountFilter('all')}
+                className={cn('px-3 py-1.5 text-xs font-medium rounded-md transition-all')}
+                style={accountFilter === 'all' ? { background: 'var(--primary)', color: 'white' } : { color: 'var(--muted)' }}>
+                全口座
+              </button>
               {accounts.map(a => (
                 <button key={a.id} onClick={() => setAccountFilter(a.id)}
                   className={cn('px-3 py-1.5 text-xs font-medium rounded-md transition-all')}

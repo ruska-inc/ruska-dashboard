@@ -19,7 +19,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import SortableTh from '@/components/ui/SortableTh'
 import { useSortable } from '@/lib/hooks/useSortable'
 
-const tabs = ['取引明細', '月次集計', '口座マスタ']
+const tabs = ['月次集計', '取引明細', '口座マスタ']
 
 const SOURCE_LABELS: Record<string, string> = {
   manual: '手動',
@@ -30,13 +30,33 @@ const SOURCE_LABELS: Record<string, string> = {
 }
 
 export default function CashflowPage() {
-  const [activeTab, setActiveTab] = useState('取引明細')
+  const [activeTab, setActiveTab] = useState('月次集計')
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [transactions, setTransactions] = useState<BankTransaction[]>([])
   const [loading, setLoading] = useState(true)
-  const [accountFilter, setAccountFilter] = useState<string>('all')
+  const [accountFilter, setAccountFilter] = useState<string>('')
   const [monthlyPeriod, setMonthlyPeriod] = useState<string>('all')
   const { periods } = usePeriods()
+
+  // 口座が読み込まれたら最初の口座をデフォルト選択
+  useEffect(() => {
+    if (accounts.length > 0 && !accountFilter) {
+      setAccountFilter(accounts[0].id)
+    }
+  }, [accounts, accountFilter])
+
+  // 期が読み込まれたら最新の期をデフォルト選択
+  useEffect(() => {
+    if (periods.length > 0 && monthlyPeriod === 'all') {
+      const sortedWithStart = [...periods]
+        .filter(p => p.start_year_month)
+        .sort((a, b) => (b.start_year_month ?? '').localeCompare(a.start_year_month ?? ''))
+      if (sortedWithStart.length > 0) {
+        setMonthlyPeriod(sortedWithStart[0].name)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periods])
 
   const [importOpen, setImportOpen] = useState(false)
   const [sheetImportOpen, setSheetImportOpen] = useState(false)
@@ -94,9 +114,10 @@ export default function CashflowPage() {
   }
 
   // === フィルタリング ===
-  const filteredTransactions = useMemo(() =>
-    accountFilter === 'all' ? transactions : transactions.filter(t => t.account_id === accountFilter),
-    [transactions, accountFilter])
+  const filteredTransactions = useMemo(() => {
+    if (!accountFilter) return []
+    return transactions.filter(t => t.account_id === accountFilter)
+  }, [transactions, accountFilter])
 
   const totalIncome = filteredTransactions.reduce((s, t) => s + t.income, 0)
   const totalExpense = filteredTransactions.reduce((s, t) => s + t.expense, 0)
@@ -239,20 +260,18 @@ export default function CashflowPage() {
             </button>
           ))}
         </div>
-        {activeTab === '取引明細' && accounts.length > 0 && (
-          <div className="flex gap-1 p-1 rounded-lg" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-            <button onClick={() => setAccountFilter('all')}
-              className={cn('px-3 py-1.5 text-xs font-medium rounded-md transition-all')}
-              style={accountFilter === 'all' ? { background: 'var(--primary)', color: 'white' } : { color: 'var(--muted)' }}>
-              全口座
-            </button>
-            {accounts.map(a => (
-              <button key={a.id} onClick={() => setAccountFilter(a.id)}
-                className={cn('px-3 py-1.5 text-xs font-medium rounded-md transition-all')}
-                style={accountFilter === a.id ? { background: 'var(--primary)', color: 'white' } : { color: 'var(--muted)' }}>
-                {a.name}
-              </button>
-            ))}
+        {(activeTab === '取引明細' || activeTab === '月次集計') && accounts.length > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium" style={{ color: 'var(--muted)' }}>口座:</span>
+            <div className="flex gap-1 p-1 rounded-lg" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+              {accounts.map(a => (
+                <button key={a.id} onClick={() => setAccountFilter(a.id)}
+                  className={cn('px-3 py-1.5 text-xs font-medium rounded-md transition-all')}
+                  style={accountFilter === a.id ? { background: 'var(--primary)', color: 'white' } : { color: 'var(--muted)' }}>
+                  {a.name}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -390,16 +409,9 @@ export default function CashflowPage() {
           <div className="flex items-center gap-3">
             <Calendar size={14} style={{ color: 'var(--muted)' }} />
             <div className="flex gap-1 p-1 rounded-lg" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-              <button
-                onClick={() => setMonthlyPeriod('all')}
-                className={cn('px-3 py-1.5 text-xs font-medium rounded-md transition-all')}
-                style={monthlyPeriod === 'all' ? { background: 'var(--primary)', color: 'white' } : { color: 'var(--muted)' }}
-              >
-                全期間
-              </button>
               {[...periods]
                 .sort((a, b) => {
-                  // 開始月があるものは降順、無いものは末尾
+                  // 開始月があるものは降順(最新が左)、無いものは末尾
                   const aHas = !!a.start_year_month
                   const bHas = !!b.start_year_month
                   if (aHas && bHas) return (b.start_year_month ?? '').localeCompare(a.start_year_month ?? '')
@@ -419,10 +431,14 @@ export default function CashflowPage() {
                     {!p.start_year_month && <span className="text-[10px] opacity-60">⚠</span>}
                   </button>
                 ))}
+              <button
+                onClick={() => setMonthlyPeriod('all')}
+                className={cn('px-3 py-1.5 text-xs font-medium rounded-md transition-all')}
+                style={monthlyPeriod === 'all' ? { background: 'var(--primary)', color: 'white' } : { color: 'var(--muted)' }}
+              >
+                全期間
+              </button>
             </div>
-            <span className="text-xs" style={{ color: 'var(--muted)' }}>
-              {accountFilter === 'all' ? '全口座' : `口座: ${accounts.find(a => a.id === accountFilter)?.name ?? ''}`}
-            </span>
           </div>
 
           {selectedPeriodStartMissing && (

@@ -44,6 +44,7 @@ export interface PeriodSetting {
   name: string
   sort_order: number
   start_year_month: string | null  // "YYYY-MM"形式、期の開始年月
+  end_year_month: string | null    // "YYYY-MM"形式、期の終了年月(未設定は次期開始月の前月まで)
   created_at: string
 }
 

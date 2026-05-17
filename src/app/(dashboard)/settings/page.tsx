@@ -109,9 +109,9 @@ export default function SettingsPage() {
     setPeriods(prev => prev.filter(p => p.id !== id))
   }
 
-  const handleUpdatePeriodStart = async (id: string, value: string | null) => {
+  const handleUpdatePeriodMonth = async (id: string, field: 'start_year_month' | 'end_year_month', value: string | null) => {
     try {
-      const updated = await updatePeriod(id, { start_year_month: value })
+      const updated = await updatePeriod(id, { [field]: value })
       setPeriods(prev => prev.map(p => p.id === id ? updated : p))
     } catch (err) {
       alert(`期の保存に失敗しました: ${(err as Error).message}\n\nperiodsテーブルのUPDATEポリシーが不足している可能性があります。supabase/add_period_start_month.sqlを実行してください。`)
@@ -311,11 +311,21 @@ export default function SettingsPage() {
               <span className="text-sm font-medium flex-1">{period.name}</span>
               <div className="flex items-center gap-2">
                 <label className="text-xs whitespace-nowrap" style={{ color: 'var(--muted)' }}>開始月:</label>
-                <div style={{ width: 180 }}>
+                <div style={{ width: 160 }}>
                   <MonthPicker
                     value={isoToJp(period.start_year_month)}
-                    onChange={v => handleUpdatePeriodStart(period.id, jpToIso(v))}
+                    onChange={v => handleUpdatePeriodMonth(period.id, 'start_year_month', jpToIso(v))}
                     placeholder="未設定"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs whitespace-nowrap" style={{ color: 'var(--muted)' }}>終了月:</label>
+                <div style={{ width: 160 }}>
+                  <MonthPicker
+                    value={isoToJp(period.end_year_month)}
+                    onChange={v => handleUpdatePeriodMonth(period.id, 'end_year_month', jpToIso(v))}
+                    placeholder="自動"
                   />
                 </div>
               </div>
@@ -329,8 +339,9 @@ export default function SettingsPage() {
           {periods.length === 0 && (
             <p className="text-xs text-center py-4" style={{ color: 'var(--muted)' }}>期が登録されていません</p>
           )}
-          <p className="text-xs mt-3" style={{ color: 'var(--muted)' }}>
-            ※ 「開始月」は入出金管理の月次集計で期切り替えに使用します。例: 第3期=2024年9月
+          <p className="text-xs mt-3 leading-relaxed" style={{ color: 'var(--muted)' }}>
+            ※ 「開始月」「終了月」は入出金管理の月次集計で期の範囲として使用します。<br />
+            ※ 終了月が未設定の場合は、次の期の開始月の前月までを期の終了として自動的に扱います。
           </p>
         </div>
       </Card>

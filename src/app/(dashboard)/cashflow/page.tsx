@@ -187,9 +187,16 @@ export default function CashflowPage() {
       .sort((a, b) => (a.start_year_month ?? '').localeCompare(b.start_year_month ?? ''))
     const idx = sortedPeriods.findIndex(p => p.name === monthlyPeriod)
     if (idx < 0) return allMonthly  // 開始月未設定: フォールバックで全期表示
-    const start = sortedPeriods[idx].start_year_month!
-    const end = idx + 1 < sortedPeriods.length ? sortedPeriods[idx + 1].start_year_month! : null
-    return allMonthly.filter(m => m.yearMonth >= start && (end === null || m.yearMonth < end))
+    const period = sortedPeriods[idx]
+    const start = period.start_year_month!
+    // 明示的なend_year_monthがあればそれを使う(両端含む)。
+    // なければ次の期の開始月の前まで(片端含む)。
+    if (period.end_year_month) {
+      const end = period.end_year_month
+      return allMonthly.filter(m => m.yearMonth >= start && m.yearMonth <= end)
+    }
+    const nextStart = idx + 1 < sortedPeriods.length ? sortedPeriods[idx + 1].start_year_month! : null
+    return allMonthly.filter(m => m.yearMonth >= start && (nextStart === null || m.yearMonth < nextStart))
   }, [allMonthly, monthlyPeriod, periods])
 
   const periodTotal = useMemo(() => ({

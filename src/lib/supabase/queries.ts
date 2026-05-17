@@ -225,7 +225,7 @@ export async function createPeriod(name: string, start_year_month?: string | nul
   return data as PeriodSetting
 }
 
-export async function updatePeriod(id: string, input: Partial<Pick<PeriodSetting, 'name' | 'sort_order' | 'start_year_month'>>) {
+export async function updatePeriod(id: string, input: Partial<Pick<PeriodSetting, 'name' | 'sort_order' | 'start_year_month' | 'end_year_month'>>) {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('periods').update(input).eq('id', id).select().single()

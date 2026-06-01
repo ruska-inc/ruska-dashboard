@@ -1,5 +1,5 @@
 import { createClient } from './client'
-import { Project, PaymentRecord, Contractor, ContractorAssignment, UserRole, PeriodSetting, Client, BankAccount, BankTransaction, MonthlyForecast } from '@/lib/types'
+import { Project, PaymentRecord, Contractor, ContractorAssignment, UserRole, PeriodSetting, Client, BankAccount, BankTransaction, MonthlyForecast, SalesLead } from '@/lib/types'
 
 // =============================================
 // 顧客マスタ
@@ -354,4 +354,45 @@ export async function upsertMonthlyForecast(input: {
     .select().single()
   if (error) throw error
   return data as MonthlyForecast
+}
+
+// =============================================
+// 営業リスト(SalesNow連携)
+// =============================================
+
+export async function getSalesLeads() {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('sales_leads').select('*').order('updated_at', { ascending: false })
+  if (error) throw error
+  return data as SalesLead[]
+}
+
+export async function createSalesLead(input: Omit<SalesLead, 'id' | 'created_at' | 'updated_at'>) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('sales_leads').insert(input).select().single()
+  if (error) throw error
+  return data as SalesLead
+}
+
+export async function updateSalesLead(id: string, input: Partial<Omit<SalesLead, 'id' | 'created_at' | 'updated_at'>>) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('sales_leads').update(input).eq('id', id).select().single()
+  if (error) throw error
+  return data as SalesLead
+}
+
+export async function deleteSalesLead(id: string) {
+  const supabase = createClient()
+  const { error } = await supabase.from('sales_leads').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function existsSalesLeadByCorporateNumber(corporateNumber: string) {
+  const supabase = createClient()
+  const { data } = await supabase
+    .from('sales_leads').select('id').eq('corporate_number', corporateNumber).maybeSingle()
+  return !!data
 }

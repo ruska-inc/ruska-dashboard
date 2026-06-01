@@ -129,6 +129,52 @@ export interface MonthlyForecast {
   updated_at: string
 }
 
+// 営業リスト(SalesNow API連携)
+export type LeadStatus = '未アプローチ' | 'アプローチ中' | '商談中' | '提案中' | '受注' | '失注' | '保留'
+export type LeadPriority = '高' | '中' | '低'
+
+export interface SalesLead {
+  id: string
+  corporate_number: string | null
+  company_name: string
+  url: string | null
+  address: string | null
+  phone: string | null
+  industry: string | null
+  representative: string | null
+  employees: number | null
+  capital: number | null
+  revenue: number | null
+  established_year: number | null
+  salesnow_score: number | null
+  status: LeadStatus
+  priority: LeadPriority
+  assigned_to: string | null
+  notes: string | null
+  next_action_date: string | null
+  created_at: string
+  updated_at: string
+}
+
+// SalesNow API レスポンスの企業情報(検索結果)
+export interface SalesNowCompany {
+  corporateNumber?: string
+  companyName: string
+  companyUrl?: string | null
+  address?: string | null
+  phoneNumber?: string | null
+  industryLarge?: string | null
+  industryMedium?: string | null
+  industrySmall?: string | null
+  representativeName?: string | null
+  employeeCount?: number | null
+  capital?: number | null
+  revenue?: number | null
+  establishedYearMonth?: string | null
+  salesnowScore?: number | null
+  [key: string]: unknown  // SalesNow APIは多くのフィールドを返す
+}
+
 // 業務委託案件
 export type PaymentStatus = '支払済' | '未対応' | '確認中'
 

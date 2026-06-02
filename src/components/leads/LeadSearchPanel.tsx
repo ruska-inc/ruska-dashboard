@@ -51,10 +51,12 @@ export default function LeadSearchPanel({ existingCorporateNumbers, onSaved }: P
         body.keyword = keyword.trim().split(/[\s,、]+/).filter(Boolean)
       }
       if (prefectures.length > 0) body.prefectures = prefectures
-      if (employeesOver) body.employeesOver = Number(employeesOver)
-      if (employeesUnder) body.employeesUnder = Number(employeesUnder)
-      if (revenueOver) body.revenueOver = Number(revenueOver) * 10000  // 万円→円
-      if (revenueUnder) body.revenueUnder = Number(revenueUnder) * 10000
+      // 仕様書通りのパラメータ名
+      if (employeesOver) body.employeeNumberOver = Number(employeesOver)
+      if (employeesUnder) body.employeeNumberUnder = Number(employeesUnder)
+      // salesは万円単位(API仕様で万円指定)
+      if (revenueOver) body.salesOver = Number(revenueOver)
+      if (revenueUnder) body.salesUnder = Number(revenueUnder)
 
       const res = await fetch('/api/salesnow/search', {
         method: 'POST',
@@ -67,9 +69,33 @@ export default function LeadSearchPanel({ existingCorporateNumbers, onSaved }: P
         setResults([])
         return
       }
-      // SalesNow APIのレスポンス構造に合わせて柔軟に
-      const companies: SalesNowCompany[] = data.companies ?? data.results ?? data.items ?? []
-      const total = data.totalCount ?? data.total ?? null
+      // SalesNow APIは items[].basicInfo/industry/size/score のネスト構造
+      // 表示用に平坦化
+      const rawItems: Array<Record<string, any>> = data.items ?? data.companies ?? data.results ?? []
+      const companies: SalesNowCompany[] = rawItems.map(item => {
+        const basic = item.basicInfo ?? item
+        const industry = item.industry ?? {}
+        const size = item.size ?? {}
+        const score = item.score ?? {}
+        return {
+          corporateNumber: basic.corporateNumber,
+          companyName: basic.companyName ?? '(不明)',
+          companyUrl: basic.companyUrl ?? null,
+          address: basic.address ?? null,
+          phoneNumber: item.contact?.phoneNumber ?? null,
+          industryLarge: industry.largeIndustry ?? null,
+          industryMedium: industry.mediumIndustry ?? industry.smallIndustry ?? null,
+          industrySmall: industry.smallIndustry ?? null,
+          representativeName: basic.presidentName ?? null,
+          employeeCount: size.employeeNumber ?? null,
+          // capitalStock/sales は API では 万円 単位 → 円に変換
+          capital: size.capitalStock != null ? size.capitalStock * 10000 : null,
+          revenue: size.sales != null ? size.sales * 10000 : null,
+          establishedYearMonth: basic.establishedDate ?? null,
+          salesnowScore: score.salesnowScore ?? null,
+        }
+      })
+      const total = data.pagination?.totalCount ?? data.totalCount ?? null
       setResults(companies)
       setTotalCount(total)
     } catch (e) {

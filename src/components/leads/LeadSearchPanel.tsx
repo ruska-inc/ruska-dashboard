@@ -46,7 +46,10 @@ export default function LeadSearchPanel({ existingCorporateNumbers, onSaved }: P
     setError(null)
     try {
       const body: Record<string, unknown> = { page: 1, perPage }
-      if (keyword.trim()) body.keyword = keyword.trim()
+      // keywordは配列 (スペース or カンマ区切りで分割)
+      if (keyword.trim()) {
+        body.keyword = keyword.trim().split(/[\s,、]+/).filter(Boolean)
+      }
       if (prefectures.length > 0) body.prefectures = prefectures
       if (employeesOver) body.employeesOver = Number(employeesOver)
       if (employeesUnder) body.employeesUnder = Number(employeesUnder)
@@ -120,13 +123,15 @@ export default function LeadSearchPanel({ existingCorporateNumbers, onSaved }: P
       {/* 検索フォーム */}
       <div className="p-4 rounded-xl border space-y-3" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
         <div>
-          <label className={labelClass} style={labelStyle}>キーワード(企業名・事業内容)</label>
+          <label className={labelClass} style={labelStyle}>
+            キーワード(業界・事業説明、複数指定はスペースまたはカンマ区切り、AND結合)
+          </label>
           <input
             value={keyword}
             onChange={e => setKeyword(e.target.value)}
             className={inputClass}
             style={inputStyle}
-            placeholder="例: SaaS、WEB制作、ECサイト"
+            placeholder="例: SaaS クラウド  /  WEB制作,ECサイト"
           />
         </div>
 

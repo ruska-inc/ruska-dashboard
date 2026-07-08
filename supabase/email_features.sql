@@ -101,7 +101,7 @@ $${{contact_person_name}}様
 
 ---
 株式会社Ruska
-中川達生
+中川達貴
 Web: https://ruska.co.jp
 Email: t.nakagawa@ruska.co.jp$$,
     true,

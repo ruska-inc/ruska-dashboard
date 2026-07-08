@@ -1,5 +1,5 @@
 import { createClient } from './client'
-import { Project, PaymentRecord, Contractor, ContractorAssignment, UserRole, PeriodSetting, Client, BankAccount, BankTransaction, MonthlyForecast, SalesLead } from '@/lib/types'
+import { Project, PaymentRecord, Contractor, ContractorAssignment, UserRole, PeriodSetting, Client, BankAccount, BankTransaction, MonthlyForecast, SalesLead, EmailTemplate, SentEmail } from '@/lib/types'
 
 // =============================================
 // 顧客マスタ
@@ -395,4 +395,54 @@ export async function existsSalesLeadByCorporateNumber(corporateNumber: string) 
   const { data } = await supabase
     .from('sales_leads').select('id').eq('corporate_number', corporateNumber).maybeSingle()
   return !!data
+}
+
+// =============================================
+// メールテンプレート
+// =============================================
+
+export async function getEmailTemplates() {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('email_templates').select('*').order('sort_order', { ascending: true })
+  if (error) throw error
+  return data as EmailTemplate[]
+}
+
+export async function createEmailTemplate(input: Omit<EmailTemplate, 'id' | 'created_at' | 'updated_at'>) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('email_templates').insert(input).select().single()
+  if (error) throw error
+  return data as EmailTemplate
+}
+
+export async function updateEmailTemplate(id: string, input: Partial<Omit<EmailTemplate, 'id' | 'created_at' | 'updated_at'>>) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('email_templates').update(input).eq('id', id).select().single()
+  if (error) throw error
+  return data as EmailTemplate
+}
+
+export async function deleteEmailTemplate(id: string) {
+  const supabase = createClient()
+  const { error } = await supabase.from('email_templates').delete().eq('id', id)
+  if (error) throw error
+}
+
+// =============================================
+// 送信履歴
+// =============================================
+
+export async function getSentEmails(leadId?: string) {
+  const supabase = createClient()
+  let q = supabase
+    .from('sent_emails')
+    .select('*, lead:sales_leads(*)')
+    .order('sent_at', { ascending: false })
+  if (leadId) q = q.eq('lead_id', leadId)
+  const { data, error } = await q
+  if (error) throw error
+  return data as SentEmail[]
 }

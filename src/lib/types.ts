@@ -140,6 +140,8 @@ export interface SalesLead {
   url: string | null
   address: string | null
   phone: string | null
+  email: string | null
+  contact_person_name: string | null
   industry: string | null
   representative: string | null
   employees: number | null
@@ -154,6 +156,37 @@ export interface SalesLead {
   next_action_date: string | null
   created_at: string
   updated_at: string
+}
+
+// メールテンプレート
+export interface EmailTemplate {
+  id: string
+  name: string
+  subject: string
+  body: string
+  is_default: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+// 送信履歴
+export type SentEmailStatus = 'sent' | 'failed' | 'bounced' | 'opened' | 'replied'
+
+export interface SentEmail {
+  id: string
+  lead_id: string
+  lead?: SalesLead
+  template_id: string | null
+  to_email: string
+  from_email: string
+  subject: string
+  body: string
+  status: SentEmailStatus
+  error_message: string | null
+  resend_id: string | null
+  sent_by: string | null
+  sent_at: string
 }
 
 // SalesNow API レスポンスの企業情報(検索結果)

@@ -159,6 +159,8 @@ export default function LeadSearchPanel({ existingCorporateNumbers, onSaved }: P
         url: c.companyUrl ?? null,
         address: c.address ?? null,
         phone: c.phoneNumber ?? null,
+        email: null,
+        contact_person_name: null,
         industry: c.industryMedium ?? c.industryLarge ?? null,
         representative: c.representativeName ?? null,
         employees: c.employeeCount ?? null,

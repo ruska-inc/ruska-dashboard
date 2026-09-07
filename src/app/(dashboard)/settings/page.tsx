@@ -7,6 +7,7 @@ import { Shield, User, Plus, Download, Mail, Trash2, CalendarDays, Building2, Pe
 import { getAllProfiles, updateProfileRole, getPeriods, createPeriod, updatePeriod, deletePeriod, getClients, createClientRecord, updateClientRecord, deleteClientRecord } from '@/lib/supabase/queries'
 import { createClient } from '@/lib/supabase/client'
 import MonthPicker from '@/components/ui/MonthPicker'
+import MFConnectionCard from '@/components/moneyforward/MFConnectionCard'
 
 // "YYYY-MM" ⇔ "YYYY年M月" の変換(MonthPickerは日本語形式を扱うため)
 const isoToJp = (iso: string | null): string | null => {
@@ -409,6 +410,9 @@ export default function SettingsPage() {
           )}
         </div>
       </Card>
+
+      {/* マネーフォワード連携 */}
+      <MFConnectionCard />
 
       {/* データエクスポート */}
       <Card>

@@ -10,8 +10,9 @@ import { cn } from '@/lib/utils'
 import ProjectFormModal from '@/components/projects/ProjectFormModal'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import ExcelImportModal from '@/components/import/ExcelImportModal'
+import MFSyncModal from '@/components/moneyforward/MFSyncModal'
 import { getProjects, createProject, updateProject, deleteProject } from '@/lib/supabase/queries'
-import { Trash2, Upload } from 'lucide-react'
+import { Trash2, Upload, RefreshCw } from 'lucide-react'
 import { usePeriods } from '@/lib/hooks/usePeriods'
 import { useSortable, monthSortValue } from '@/lib/hooks/useSortable'
 import SortableTh from '@/components/ui/SortableTh'
@@ -30,6 +31,7 @@ export default function ProjectsPage() {
   const [editTarget, setEditTarget] = useState<Project | undefined>(undefined)
   const [deleteTarget, setDeleteTarget] = useState<Project | undefined>(undefined)
   const [importOpen, setImportOpen] = useState(false)
+  const [mfSyncOpen, setMfSyncOpen] = useState(false)
   const { periods: periodSettings } = usePeriods()
   const periods = [...periodSettings.map(p => p.name), '全期']
 
@@ -121,6 +123,17 @@ export default function ProjectsPage() {
         onClose={() => setImportOpen(false)}
         onImported={imported => setProjects(prev => [...imported, ...prev])}
       />
+      <MFSyncModal
+        open={mfSyncOpen}
+        onClose={() => setMfSyncOpen(false)}
+        onImported={({ created, updated }) => {
+          const updatedById = new Map(updated.map(p => [p.id, p]))
+          setProjects(prev => [
+            ...created,
+            ...prev.map(p => updatedById.get(p.id) ?? p),
+          ])
+        }}
+      />
       <ConfirmDialog
         open={!!deleteTarget}
         title="プロジェクトを削除"
@@ -155,6 +168,14 @@ export default function ProjectsPage() {
           ))}
         </div>
 
+        <button
+          onClick={() => setMfSyncOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-gray-100 border"
+          style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
+        >
+          <RefreshCw size={15} />
+          MFから取り込み
+        </button>
         <button
           onClick={() => setImportOpen(true)}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-gray-100 border"

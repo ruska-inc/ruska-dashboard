@@ -64,6 +64,10 @@ export interface Project {
   estimate_url: string | null
   invoice_url: string | null
   parent_id: string | null
+  // マネーフォワード クラウド請求書の帳票ID（連携で取り込んだ案件のみ）
+  mf_quote_id?: string | null
+  mf_billing_id?: string | null
+  mf_synced_at?: string | null
   created_at: string
   updated_at: string
 }
